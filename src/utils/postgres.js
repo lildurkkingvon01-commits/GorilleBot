@@ -1,14 +1,70 @@
 import pgPromise from 'pg-promise';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { existsSync, readFileSync } from 'fs';
 
-// Load environment variables (local dev will use .env if present)
-dotenv.config();
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const projectRoot = path.resolve(__dirname, '../../');
+
+const initialEnvKeys = new Set(Object.keys(process.env));
+const envKeysFromDotenv = new Set();
+
+function loadEnvFile(fileName, allowOverride = false) {
+  const envPath = path.join(projectRoot, fileName);
+  if (!existsSync(envPath)) {
+    return;
+  }
+
+  const parsed = dotenv.parse(readFileSync(envPath, 'utf8'));
+  for (const [key, value] of Object.entries(parsed)) {
+    const existing = process.env[key];
+    const valueString = value == null ? '' : String(value);
+    const valueIsNonEmpty = valueString.trim().length > 0;
+    const shouldSet = valueIsNonEmpty && (existing === undefined || existing === '' || (allowOverride && envKeysFromDotenv.has(key)));
+    if (shouldSet) {
+      process.env[key] = valueString;
+      envKeysFromDotenv.add(key);
+    }
+  }
+}
+
+function getEnvValue(...keys) {
+  for (const key of keys) {
+    const value = process.env[key];
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value;
+    }
+  }
+  return '';
+}
+
+loadEnvFile('.env', false);
+loadEnvFile('.env.local', true);
+process.env.NODE_ENV = process.env.NODE_ENV || 'development';
 
 const pgp = pgPromise();
 
+const hasDatabaseUrl = Boolean(getEnvValue('DATABASE_URL'));
+const useSsl = String(getEnvValue('DB_SSL')).toLowerCase() === 'true' || /sslmode=(require|prefer|verify-full|verify-ca|true)/i.test(getEnvValue('DATABASE_URL'));
+
+function validateLocalDatabaseEnv(host, port, database, user, password) {
+  const missing = [];
+  if (!host) missing.push('DB_HOST');
+  if (!port) missing.push('DB_PORT');
+  if (!database) missing.push('DB_NAME');
+  if (!user) missing.push('DB_USER');
+  if (!password) missing.push('DB_PASSWORD');
+
+  if (missing.length > 0) {
+    console.error(`❌ Missing required PostgreSQL env vars: ${missing.join(', ')}`);
+    console.error('Please set these values in .env for local development or use DATABASE_URL in production.');
+    process.exit(1);
+  }
+}
+
 function buildDbConfig() {
-  // If a single DATABASE_URL is provided (Railway, Heroku, Supabase), prefer it
-  if (process.env.DATABASE_URL) {
+  if (hasDatabaseUrl) {
     const cfg = {
       connectionString: process.env.DATABASE_URL,
       max: 20,
@@ -16,23 +72,22 @@ function buildDbConfig() {
       connectionTimeoutMillis: 2000,
     };
 
-    // Always enable SSL for production or when DB_SSL is explicitly true
-    if (process.env.NODE_ENV === 'production' || process.env.DB_SSL === 'true') {
+    if (useSsl) {
       cfg.ssl = { rejectUnauthorized: false };
     }
 
     return cfg;
   }
 
-  // No DATABASE_URL: build config from discrete env vars.
-  // Do NOT fall back to hardcoded defaults; leave undefined so failures are explicit.
-  const host = process.env.DB_HOST;
-  const port = process.env.DB_PORT ? parseInt(process.env.DB_PORT, 10) : undefined;
-  const database = process.env.DB_NAME;
-  const user = process.env.DB_USER;
-  const password = process.env.DB_PASSWORD;
+  const host = getEnvValue('DB_HOST', 'PGHOST', 'POSTGRES_HOST');
+  const port = Number(getEnvValue('DB_PORT', 'PGPORT')) || undefined;
+  const database = getEnvValue('DB_NAME', 'POSTGRES_DB', 'PGDATABASE');
+  const user = getEnvValue('DB_USER', 'POSTGRES_USER', 'PGUSER');
+  const password = getEnvValue('DB_PASSWORD', 'POSTGRES_PASSWORD', 'PGPASSWORD');
 
-  const cfg = {
+  validateLocalDatabaseEnv(host, port, database, user, password);
+
+  return {
     host,
     port,
     database,
@@ -41,16 +96,27 @@ function buildDbConfig() {
     max: 20,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 2000,
+    ...(useSsl ? { ssl: { rejectUnauthorized: false } } : {}),
   };
+}
 
-  if (process.env.NODE_ENV === 'production' || process.env.DB_SSL === 'true') {
-    cfg.ssl = { rejectUnauthorized: false };
-  }
 
-  return cfg;
+function logDatabaseDiagnostics(config) {
+  const dbUrlPresent = hasDatabaseUrl ? 'oui' : 'non';
+  const sslEnabled = useSsl ? 'oui' : 'non';
+  console.log('--- PostgreSQL Diagnostic ---');
+  console.log(`NODE_ENV: ${process.env.NODE_ENV || 'undefined'}`);
+  console.log(`DATABASE_URL présent: ${dbUrlPresent}`);
+  console.log(`DB_HOST: ${config.host || 'n/a'}`);
+  console.log(`DB_NAME: ${config.database || 'n/a'}`);
+  console.log(`DB_USER: ${config.user || 'n/a'}`);
+  console.log(`DB_PASSWORD_PRESENT: ${config.password ? 'oui' : 'non'}`);
+  console.log(`SSL activé: ${sslEnabled}`);
+  console.log('-----------------------------');
 }
 
 const dbConfig = buildDbConfig();
+logDatabaseDiagnostics(dbConfig);
 const db = pgp(dbConfig);
 
 export async function testConnection() {

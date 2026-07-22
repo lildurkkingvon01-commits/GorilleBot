@@ -13,7 +13,6 @@ Railway deployment notes for Gorille bot
   - `DISCORD_CLIENT_ID` = <your application client id>
   - `DATABASE_URL` = <value provided by Railway Postgres plugin>
   - `DB_SSL` = `true` (if Railway Postgres requires SSL; safe to set true)
-  - (optional) `API_URL`, `WEB_PANEL_URL` if you run the API/UI
 
 4) Build & Start
 - Railway will run `npm install` then `npm start` by default.

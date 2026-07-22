@@ -5,9 +5,40 @@
 
 import Fastify from 'fastify';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { existsSync, readFileSync } from 'fs';
 
-// Load environment variables
-dotenv.config();
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const appRoot = path.resolve(__dirname, '..', '..');
+const projectRoot = path.resolve(__dirname, '..', '..', '..');
+
+const initialEnvKeys = new Set(Object.keys(process.env));
+const envKeysFromDotenv = new Set();
+
+function loadEnvFile(fileName, basePath, allowOverride = false) {
+  const envPath = path.join(basePath, fileName);
+  if (!existsSync(envPath)) {
+    return;
+  }
+
+  const parsed = dotenv.parse(readFileSync(envPath, 'utf8'));
+  for (const [key, value] of Object.entries(parsed)) {
+    const existing = process.env[key];
+    const shouldSet = existing === undefined || existing === '' || (allowOverride && envKeysFromDotenv.has(key));
+    if (shouldSet) {
+      process.env[key] = value;
+      envKeysFromDotenv.add(key);
+    }
+  }
+}
+
+loadEnvFile('.env', appRoot, false);
+loadEnvFile('.env.local', appRoot, true);
+loadEnvFile('.env', projectRoot, false);
+loadEnvFile('.env.local', projectRoot, true);
+
+process.env.NODE_ENV = process.env.NODE_ENV || 'development';
 
 // Import middleware setup
 import {

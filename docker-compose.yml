@@ -5,10 +5,10 @@ services:
     image: postgres:15-alpine
     container_name: gorille_bot_postgres
     environment:
-      # Use environment variables or Railway secrets instead of hardcoded defaults
-      POSTGRES_DB: ${POSTGRES_DB:-gorille_bot}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      # Use local DB_* env vars when running docker-compose
+      POSTGRES_DB: ${DB_NAME:-gorille_bot}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
     ports:
       - "5432:5432"
     volumes:

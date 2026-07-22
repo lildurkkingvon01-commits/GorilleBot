@@ -1,5 +1,5 @@
-﻿import { Client, GatewayIntentBits, Collection, REST, Routes, ChannelType, EmbedBuilder, PermissionFlagsBits, ActivityType, AuditLogEvent, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
-import dotenv from 'dotenv';
+﻿import dotenv from 'dotenv';
+import { Client, GatewayIntentBits, Collection, REST, Routes, ChannelType, EmbedBuilder, PermissionFlagsBits, ActivityType, AuditLogEvent, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
 import cron from 'node-cron';
 import { execSync } from 'child_process';
 import path from 'path';
@@ -54,12 +54,68 @@ import GuildSyncService from './services/guildSyncService.js';
 import MiddlewarePerformanceService from './services/middlewarePerformanceService.js';
 import LogPurgeService from './services/logPurgeService.js';
 import AlertingService from './services/alertingService.js';
-import GuildActionService from './services/guildActionService.js';
 import OrphanLogService from './services/orphanLogService.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-// Load environment from process.env; local .env will be loaded automatically by dotenv if present
-dotenv.config();
+const projectRoot = path.resolve(__dirname, '..');
+const envKeysFromDotenv = new Set();
+const tokenSourceByKey = new Map();
+const loadedEnvFiles = new Set();
+
+function loadEnvFile(fileName, allowOverride = false) {
+  const envPath = path.join(projectRoot, fileName);
+  if (!existsSync(envPath)) {
+    return;
+  }
+
+  const parsed = dotenv.parse(readFileSync(envPath, 'utf8'));
+  let fileApplied = false;
+
+  for (const [key, value] of Object.entries(parsed)) {
+    const existing = process.env[key];
+    const valueString = value == null ? '' : String(value);
+    const valueIsNonEmpty = valueString.trim().length > 0;
+    const shouldSet = valueIsNonEmpty && (existing === undefined || existing === '' || (allowOverride && envKeysFromDotenv.has(key)));
+
+    if (shouldSet) {
+      process.env[key] = valueString;
+      envKeysFromDotenv.add(key);
+      tokenSourceByKey.set(key, fileName);
+      fileApplied = true;
+    }
+  }
+
+  if (fileApplied) {
+    loadedEnvFiles.add(fileName);
+  }
+}
+
+loadEnvFile('.env', false);
+loadEnvFile('.env.local', true);
+process.env.NODE_ENV = process.env.NODE_ENV || 'development';
+
+function logDiscordTokenDiagnostics() {
+  const envToken = process.env.DISCORD_TOKEN;
+  const token = typeof envToken === 'string' ? envToken.trim() : envToken;
+  if (typeof envToken === 'string' && envToken !== token) {
+    process.env.DISCORD_TOKEN = token;
+  }
+
+  const exists = typeof token === 'string' && token.length > 0;
+  const length = exists ? token.length : 0;
+  const prefix = exists ? token.slice(0, 10) : 'n/a';
+  const hasWhitespace = exists ? /\s/.test(token) : false;
+  const source = tokenSourceByKey.get('DISCORD_TOKEN') || (exists ? 'environment variable' : 'none');
+
+  console.log('--- Discord Token Diagnostic ---');
+  console.log(`DISCORD_TOKEN exists: ${exists ? 'oui' : 'non'}`);
+  console.log(`DISCORD_TOKEN length: ${length}`);
+  console.log(`DISCORD_TOKEN first 10 chars: ${exists ? prefix : 'n/a'}`);
+  console.log(`DISCORD_TOKEN source: ${source}`);
+  console.log(`DISCORD_TOKEN whitespace: ${hasWhitespace ? 'oui' : 'non'}`);
+  console.log(`Env files loaded: ${loadedEnvFiles.size > 0 ? Array.from(loadedEnvFiles).join(', ') : 'none'}`);
+  console.log('-------------------------------');
+}
 
 const client = new Client({
   intents: [
@@ -554,27 +610,6 @@ client.once('clientReady', async () => {
   } catch (initError) {
     console.error('❌ Error initializing services:', initError);
     // Continue anyway - services should have fallbacks
-  }
-
-  // ==================== GUILD ACTIONS POLLING ====================
-  const guildActionsApiUrl = process.env.API_URL;
-  if (!guildActionsApiUrl) {
-    console.warn('\n⚠️  GUILD ACTIONS disabled: API_URL is not configured.');
-  } else {
-    console.log('\n📋 Starting guild actions polling (every 10 seconds)...');
-    try {
-      // Initial sync on startup
-      await GuildActionService.syncAndExecuteActions(client);
-      
-      // Then poll every 10 seconds
-      setInterval(async () => {
-        await GuildActionService.syncAndExecuteActions(client);
-      }, 10 * 1000); // 10 seconds
-
-      console.log('✅ Guild actions polling started (10s interval)');
-    } catch (actionError) {
-      console.error('❌ Error starting guild actions polling:', actionError);
-    }
   }
 
   // ==================== GUILD SYNC TO DATABASE ====================
@@ -3669,6 +3704,8 @@ async function main() {
     await updatePlayersCache();
     await updateSaveCache();
     await updateInfoCache();
+
+    logDiscordTokenDiagnostics();
     
     await client.login(process.env.DISCORD_TOKEN);
   } catch (error) {

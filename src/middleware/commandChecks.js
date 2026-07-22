@@ -5,10 +5,7 @@
  */
 
 import { EmbedBuilder } from 'discord.js';
-import dbPostgres from '../utils/postgres.js';
-import dbSqlite from '../config/database-sqlite.js';
-
-const db = process.env.USE_POSTGRES === 'true' ? dbPostgres : dbSqlite;
+import db from '../utils/postgres.js';
 
 /**
  * Check if command is enabled for this guild

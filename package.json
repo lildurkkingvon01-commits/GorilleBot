@@ -10,10 +10,10 @@
     "packages/shared"
   ],
   "scripts": {
-    "start": "node src/index.js",
-    "dev": "node --watch src/index.js",
-    "bot:start": "node src/index.js",
-    "bot:dev": "node --watch src/index.js",
+    "start": "node src/bootstrap.js",
+    "dev": "node --watch src/bootstrap.js",
+    "bot:start": "node src/bootstrap.js",
+    "bot:dev": "node --watch src/bootstrap.js",
     "api:dev": "workspace @redguard/api dev",
     "api:build": "workspace @redguard/api build",
     "api:start": "workspace @redguard/api start",
