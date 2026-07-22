@@ -1,0 +1,11 @@
+{
+  "guildId": "1361392624543596835",
+  "alertChannelId": "1486317907175669813",
+  "alertsViaDM": true,
+  "inactivityThreshold": 1,
+  "webKey": "669eed16fff606a5001189898d6010ad",
+  "createdAt": 1775984948299,
+  "updatedAt": 1784732115891,
+  "monitorChannelId": "1528863864362500136",
+  "monitorMessageId": "1529498977324761132"
+}

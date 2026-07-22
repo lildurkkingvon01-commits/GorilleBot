@@ -1,0 +1,985 @@
+import cron from 'node-cron';
+import { getPlayers, getPlayersByGuild, updatePlayerCheckTime, updateAlertSentTime, getLastAlertTime, updatePlayerStatus, updateLastReconnectionAlert, getLastReconnectionAlertTime, getCheckFrequency, getAllLastCheckTimes, updateLastCheckTime, getBroadcastChannel } from '../utils/database.js';
+import { getGuildConfig, setGuildConfig } from '../utils/guildConfig.js';
+import { scrapePactifyProfile, formatDays } from '../utils/scraper.js';
+import { formatInactivityTime, createProgressBar, getColorByStatus, getStatusEmoji } from '../utils/embedFormatter.js';
+import { EmbedBuilder, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+
+let client;
+let cronJobsEnabled = false; // CRITICAL: Disable CRON during startup phase
+const guildLastCheckTime = {}; // Track last check time per guild
+const monitorIntervals = {}; // per-guild intervals for live countdown
+
+function normalizePlayerData(player) {
+  return {
+    ...player,
+    userId: player.userId || player.discordId,
+    playerName: player.playerName || player.username || player.discordId || 'unknown',
+    playerFaction: player.playerFaction || player.faction || null,
+    playerImageUrl: player.playerImageUrl || player.image_url || null,
+    playerRole: player.playerRole || player.role || null
+  };
+}
+
+export async function initCronJobs(discordClient) {
+  client = discordClient;
+  console.log('🕐 Initialisation des jobs cron...');
+  cronJobsEnabled = true;
+  console.log('✅ CRON jobs ENABLED');
+
+  // Charger les last_check_time depuis la base de données
+  try {
+    const lastCheckTimes = await getAllLastCheckTimes();
+    Object.assign(guildLastCheckTime, lastCheckTimes);
+    console.log('[CRON] ✅ Last check times restaurés depuis la base de données:', Object.keys(lastCheckTimes).length, 'guild(s)');
+    
+    // Restaurer les timers pour TOUS les guilds (même sans players valides)
+    for (const guildId of Object.keys(lastCheckTimes)) {
+      try {
+        const frequency = await getCheckFrequency(guildId);
+        const lastCheck = guildLastCheckTime[guildId] || 0;
+        const now = Date.now();
+        const minutesElapsed = (now - lastCheck) / (1000 * 60);
+        const nextCheckIn = Math.max(0, frequency - minutesElapsed);
+        
+        // Restaurer le timer visuel
+        await updateGuildMonitorMessage(guildId, frequency, nextCheckIn, 0);
+        if (nextCheckIn > 0) {
+          console.log(`[CRON] ✅ Timer restauré pour guild ${guildId} (${nextCheckIn.toFixed(1)}min restantes)`);
+        }
+      } catch (err) {
+        // Silent fail if guild not accessible
+      }
+    }
+  } catch (err) {
+    console.warn('[CRON] ⚠️ Impossible de charger les last check times:', err.message);
+  }
+
+  // S'exécute chaque minute pour vérifier si une vérification est nécessaire
+  cron.schedule('* * * * *', async () => {
+    try {
+      await checkInactivityIfNeeded();
+    } catch (error) {
+      console.error('[CRON] Error in checkInactivityIfNeeded:', error.message);
+    }
+  });
+
+  console.log('✓ Jobs cron configurés (vérification chaque minute selon la fréquence par serveur)');
+}
+
+async function checkInactivityIfNeeded() {
+  try {
+    const players = await getPlayers();
+    
+    if (players.length === 0) {
+      return;
+    }
+
+    // Grouper les joueurs par serveur, ignorer les joueurs sans guildId
+    const playersByGuild = {};
+    let orphanCount = 0;
+    for (const player of players) {
+      if (!player.guildId) {
+        orphanCount++;
+        continue;
+      }
+      if (!playersByGuild[player.guildId]) {
+        playersByGuild[player.guildId] = [];
+      }
+      playersByGuild[player.guildId].push(player);
+    }
+    if (orphanCount > 0 && cronJobsEnabled && Object.keys(playersByGuild).length > 0) {
+      console.warn(`⚠️ ${orphanCount} joueur(s) sans guildId ignoré(s)`);
+    }
+
+    // Vérifier chaque serveur selon sa fréquence
+    for (const guildId in playersByGuild) {
+      try {
+        const frequency = await getCheckFrequency(guildId);
+        const lastCheck = guildLastCheckTime[guildId] || 0;
+        const now = Date.now();
+        const minutesElapsed = (now - lastCheck) / (1000 * 60);
+        const nextCheckIn = Math.max(0, frequency - minutesElapsed);
+
+        await updateGuildMonitorMessage(guildId, frequency, nextCheckIn, playersByGuild[guildId].length);
+
+        // Vérifier seulement si assez de temps s'est écoulé
+        if (minutesElapsed >= frequency) {
+          console.log(`\n[CRON] 🔄 Vérification pour serveur ${guildId} (fréquence: ${frequency}min)`);
+          guildLastCheckTime[guildId] = now;
+          
+          // Sauvegarder le last check time en base de données
+          try {
+            await updateLastCheckTime(guildId, now);
+          } catch (dbErr) {
+            console.warn(`⚠️ Impossible de sauvegarder le last check time pour ${guildId}:`, dbErr.message);
+          }
+
+          // Effectuer la vérification et récupérer le nombre d'alertes déclenchées
+          const alertsTriggered = await checkInactivityForGuild(playersByGuild[guildId].map(normalizePlayerData));
+
+          // Envoyer un bref message de confirmation dans le channel de statut si configuré
+          try {
+            const guildConfig = getGuildConfig(guildId);
+            const monitorChannelId = guildConfig?.monitorChannelId;
+            if (monitorChannelId) {
+              const guildObj = client.guilds.cache.get(guildId);
+              if (guildObj) {
+                const ch = await guildObj.channels.fetch(monitorChannelId).catch(() => null);
+                if (ch && ch.type === ChannelType.GuildText) {
+                  const playersChecked = Array.isArray(playersByGuild[guildId]) ? playersByGuild[guildId].length : 0;
+                  await ch.send(`✅ Vérification effectuée — ${playersChecked} joueur(s) vérifié(s), ${alertsTriggered || 0} alerte(s)`).catch(() => null);
+                }
+              }
+            }
+          } catch (err) {
+            // ignore errors sending confirmation
+          }
+
+          // Mettre à jour immédiatement le message de statut pour réinitialiser le timer
+          try {
+            await updateGuildMonitorMessage(guildId, frequency, 0, playersByGuild[guildId].length);
+          } catch (err) {
+            // ignore
+          }
+        }
+      } catch (error) {
+        console.error(`❌ Erreur vérification pour serveur ${guildId}:`, error);
+      }
+    }
+  } catch (err) {
+    // Silently fail if error is during startup phase
+    if (!err.message.includes('buffering timed out')) {
+      console.error('[CRON] Unexpected error:', err.message);
+    }
+  }
+}
+
+export async function runManualInactivityCheck(guildId) {
+  const players = await getPlayersByGuild(guildId);
+  if (!players || players.length === 0) {
+    return { success: false, playersChecked: 0, alertsTriggered: 0 };
+  }
+
+  const alertsTriggered = await checkInactivityForGuild(players.map(normalizePlayerData));
+  return { success: true, playersChecked: players.length, alertsTriggered };
+}
+
+export async function updateGuildMonitorMessage(guildId, frequency, nextCheckIn, playerCount) {
+  try {
+    const guildConfig = getGuildConfig(guildId);
+    const monitorChannelId = guildConfig?.monitorChannelId;
+    if (!monitorChannelId) return;
+
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) return;
+
+    const channel = await guild.channels.fetch(monitorChannelId).catch(() => null);
+    if (!channel || channel.type !== ChannelType.GuildText) {
+      console.warn(`⚠️ Channel de statut introuvable ou invalide pour le serveur ${guildId}`);
+      return;
+    }
+
+    const thresholdHours = guildConfig?.inactivityThreshold || parseInt(process.env.INACTIVITY_THRESHOLD) || 9;
+    const thresholdDays = thresholdHours / 24;
+    const thresholdDisplay = (() => {
+      if (thresholdHours >= 24) {
+        const days = Math.floor(thresholdHours / 24);
+        const hours = thresholdHours % 24;
+        return hours > 0 ? `${days}j ${hours}h` : `${days}j`;
+      }
+      return `${thresholdHours}h`;
+    })();
+
+    // Compute seconds remaining until next check using guildLastCheckTime
+    const freqSeconds = Math.max(1, Math.floor((frequency || 1) * 60));
+    const lastCheck = guildLastCheckTime[guildId] || 0;
+    const now = Date.now();
+    const secondsElapsed = lastCheck ? Math.max(0, Math.floor((now - lastCheck) / 1000)) : 0;
+    let secondsRemaining = Math.max(0, freqSeconds - secondsElapsed);
+
+    // If caller provided nextCheckIn (in minutes) and we don't have lastCheck, use that as fallback
+    if ((!lastCheck || lastCheck === 0) && typeof nextCheckIn === 'number' && nextCheckIn > 0) {
+      secondsRemaining = Math.max(0, Math.floor(nextCheckIn * 60));
+    }
+
+    // Avoid immediately triggering a full check when nextCheckIn is 0 and there's no last check yet
+    if ((!lastCheck || lastCheck === 0) && (nextCheckIn === undefined || nextCheckIn === null || nextCheckIn === 0)) {
+      secondsRemaining = freqSeconds;
+    }
+
+    const formatRemaining = (s) => {
+      if (s <= 0) return 'Maintenant';
+      const m = Math.floor(s / 60);
+      const sec = s % 60;
+      return m > 0 ? `${m}m ${sec}s` : `${sec}s`;
+    };
+    const nextCheckLabel = formatRemaining(secondsRemaining);
+    const guildName = guild.name || guildId;
+
+    const embed = new EmbedBuilder()
+      .setColor(0x3498db)
+      .setTitle('⏱️ Statut de surveillance des joueurs')
+      .setDescription(`Suivi automatique des joueurs inactifs pour **${guildName}**`)
+      .addFields(
+        { name: '📊 Joueurs surveillés', value: `
+\`${playerCount} joueur(s)\``, inline: true },
+        { name: '⏱️ Seuil', value: `\`${thresholdDisplay}\``, inline: true },
+        { name: '🔁 Fréquence', value: `\`${frequency} minutes\``, inline: true },
+        { name: '⌛ Prochaine vérif', value: `\`${nextCheckLabel}\``, inline: true },
+        { name: '📢 Channel d\'alerte', value: guildConfig.alertChannelId ? `<#${guildConfig.alertChannelId}>` : '`Aucun`', inline: true },
+        { name: '📰 Channel de statut', value: `<#${monitorChannelId}>`, inline: true }
+      )
+      .setTimestamp();
+
+    let message = null;
+    if (guildConfig.monitorMessageId) {
+      message = await channel.messages.fetch(guildConfig.monitorMessageId).catch(() => null);
+    }
+
+    if (message) {
+      await message.edit({ embeds: [embed] }).catch(() => null);
+    } else {
+      message = await channel.send({ embeds: [embed] });
+      await setGuildConfig(guildId, guildConfig.alertChannelId, { monitorChannelId, monitorMessageId: message.id });
+    }
+
+    // Start a per-guild interval to update the countdown every second
+    try {
+      // Clear existing interval if any
+      if (monitorIntervals[guildId]) {
+        clearInterval(monitorIntervals[guildId].id);
+      }
+
+      // Determine initial target time (ms since epoch)
+      const nowBase = Date.now();
+      const initialTarget = lastCheck && lastCheck > 0 ? (lastCheck + freqSeconds * 1000) : (nowBase + secondsRemaining * 1000);
+
+      // Store interval id + targetTime so it can be updated/cleared later
+      const intervalId = setInterval(async () => {
+        try {
+          // If a real lastCheck exists, prefer that target (keeps in sync after an actual run)
+          const last = guildLastCheckTime[guildId] || 0;
+          const targetTime = last && last > 0 ? (last + freqSeconds * 1000) : monitorIntervals[guildId]?.targetTime || initialTarget;
+
+          const remainingSec = Math.max(0, Math.ceil((targetTime - Date.now()) / 1000));
+
+          // If timer reached zero, trigger an immediate check and reset the target
+          if (remainingSec <= 0) {
+            const lastRun = guildLastCheckTime[guildId] || 0;
+            // prevent rapid re-triggers
+            if (!lastRun || (Date.now() - lastRun) >= 1000) {
+              const checkTime = Date.now();
+              guildLastCheckTime[guildId] = checkTime;
+              
+              // Sauvegarder en base de données
+              try {
+                await updateLastCheckTime(guildId, checkTime);
+              } catch (dbErr) {
+                console.warn(`⚠️ Impossible de sauvegarder le last check time pour ${guildId}:`, dbErr.message);
+              }
+              
+              try {
+                const playersList = await getPlayersByGuild(guildId);
+                await checkInactivityForGuild((playersList || []).map(normalizePlayerData));
+              } catch (runErr) {
+                // ignore run error
+              }
+
+              // reset target time after run
+              monitorIntervals[guildId].targetTime = Date.now() + freqSeconds * 1000;
+            }
+          }
+
+          // recompute remaining/label based on possibly-updated targetTime
+          const currentTarget = monitorIntervals[guildId]?.targetTime || targetTime;
+          const newRemaining = Math.max(0, Math.ceil((currentTarget - Date.now()) / 1000));
+          const label = formatRemaining(newRemaining);
+
+          const updatedEmbed = EmbedBuilder.from(embed).setFields(
+            { name: '📊 Joueurs surveillés', value: `\n\`${playerCount} joueur(s)\``, inline: true },
+            { name: '⏱️ Seuil', value: `\`${thresholdDisplay}\``, inline: true },
+            { name: '🔁 Fréquence', value: `\`${frequency} minutes\``, inline: true },
+            { name: '⌛ Prochaine vérif', value: `\`${label}\``, inline: true },
+            { name: '📢 Channel d\'alerte', value: guildConfig.alertChannelId ? `<#${guildConfig.alertChannelId}>` : '`Aucun`', inline: true },
+            { name: '📰 Channel de statut', value: `<#${monitorChannelId}>`, inline: true }
+          ).setTimestamp();
+
+          await message.edit({ embeds: [updatedEmbed] }).catch(() => null);
+        } catch (e) {
+          // ignore per-tick errors
+        }
+      }, 1000);
+
+      monitorIntervals[guildId] = { id: intervalId, targetTime: initialTarget };
+    } catch (err) {
+      // ignore interval failures
+    }
+  } catch (error) {
+    console.error(`❌ Erreur lors de la mise à jour du message de statut pour ${guildId}:`, error.message);
+  }
+}
+
+export function clearMonitorInterval(guildId) {
+  if (monitorIntervals[guildId]) {
+    clearInterval(monitorIntervals[guildId]);
+    delete monitorIntervals[guildId];
+  }
+}
+
+async function checkInactivityForGuild(guildPlayers) {
+  if (guildPlayers.length === 0) {
+    return;
+  }
+
+  // Récupérer le seuil du serveur une fois au début (en heures, convertir en jours)
+  const guildId = guildPlayers[0].guildId;
+  const guildConfig = getGuildConfig(guildId);
+  const thresholdHours = guildConfig?.inactivityThreshold || parseInt(process.env.INACTIVITY_THRESHOLD) || 9;
+  const thresholdDays = thresholdHours / 24;
+  
+  let alertsTriggered = 0;
+
+  for (const player of guildPlayers) {
+    try {
+      // Log détaillé désactivé - voir résumé à la fin
+      // console.log(`\n🔍 Vérification de ${player.playerName}...`);
+      
+      // 1. Scraper le profil
+      const scrapResult = await scrapePactifyProfile(player.url);
+
+      if (!scrapResult.success) {
+        console.warn(`❌ Impossible de scraper ${player.playerName}: ${scrapResult.error}`);
+        continue;
+      }
+
+      const currentStatus = scrapResult.status;
+      const daysInactive = scrapResult.daysInactive;
+      const previousStatus = player.playerStatus || 'inactive';
+      
+      // Log détaillé désactivé
+      // console.log(`✅ Scrape réussi: ${currentStatus} (était: ${previousStatus})`);
+      await updatePlayerCheckTime(player.id, daysInactive);
+
+      // 🟢 DÉTECTION RECONNEXION: Si passe de "inactive" à "online"
+      if (previousStatus === 'inactive' && currentStatus === 'online') {
+        console.log(`🟢 RECONNEXION DÉTECTÉE! ${player.playerName} est revenu en ligne!`);
+        // Envoyer alerte de reconnexion (toujours envoyer pour notifier le retour)
+        await sendReconnectionAlert(player, daysInactive, thresholdDays);
+        alertsTriggered++;
+      }
+
+      // Mettre à jour le statut du joueur
+      await updatePlayerStatus(player.id, currentStatus);
+
+      // Log détaillé désactivé
+      // console.log(`⏱️ ${player.playerName}: ${currentStatus === 'online' ? 'EN LIGNE' : daysInactive.toFixed(2) + ' jours'} (seuil: ${threshold})`);
+
+      // 2. Vérifier si >= seuil (seulement si inactif ET il n'a pas juste revenu en ligne)
+      if (currentStatus === 'inactive' && daysInactive >= thresholdDays) {
+        // Vérifier si c'est une "nouvelle" inactivité détectée (au moins 1h depuis last check)
+        const lastCheckTime = await getLastAlertTime(player.id, 'inactive');
+        const now = Math.floor(Date.now() / 1000);
+        
+        // Envoyer alerte seulement si:
+        // - Pas d'alerte précédente (première fois inactif)
+        // - Ou assez de temps écoulé (6h minimum)
+        if (!lastCheckTime || (now - lastCheckTime) >= 21600) {
+          // Log détaillé désactivé
+          // console.log(`🚨 ALERTE DÉCLENCHÉE! Jours: ${daysInactive.toFixed(2)} >= Seuil: ${threshold}`);
+          await sendInactivityAlert(player, daysInactive, thresholdDays);
+          alertsTriggered++;
+        }
+      }
+      // Log détaillé désactivé
+      // else if (currentStatus === 'inactive') {
+      //   console.log(`✅ Pas d'alerte (${daysInactive.toFixed(2)} < ${threshold})`);
+      // }
+
+      // 3. Vérifier rappel 24h (seulement si inactif)
+      if (currentStatus === 'inactive') {
+        const lastAlertTime = await getLastAlertTime(player.id, 'inactive');
+        if (lastAlertTime) {
+          const hoursSinceAlert = (Math.floor(Date.now() / 1000) - lastAlertTime) / 3600;
+          if (hoursSinceAlert >= 24 && daysInactive >= thresholdDays) {
+            await sendReminderAlert(player, daysInactive, thresholdDays);
+            alertsTriggered++;
+          }
+        }
+      }
+    } catch (error) {
+      console.error(`❌ Erreur cron pour ${player.playerName || player.username || player.discordId}:`, error);
+    }
+  }
+
+  // Afficher un résumé concis
+  console.log(`[CRON] ✅ Serveur ${guildId}: ${guildPlayers.length} joueurs vérifiés${alertsTriggered > 0 ? `, ${alertsTriggered} alerte(s)` : ''}`);
+  return alertsTriggered;
+}
+
+async function sendReconnectionAlert(player, daysInactive, threshold) {
+  const inactivityTime = formatInactivityTime(daysInactive);
+  console.log(`📤 Envoi de l'alerte de reconnexion pour ${player.playerName}... (Inactif pendant: ${inactivityTime})`);
+  
+  const lastReconnectionAlert = await getLastReconnectionAlertTime(player.id);
+  const now = Math.floor(Date.now() / 1000);
+
+  if (lastReconnectionAlert && now - lastReconnectionAlert < 86400) {
+    const remaining = 86400 - (now - lastReconnectionAlert);
+    console.log(`⏸️ Reconnection cooldown actif (${Math.ceil(remaining / 3600)}h restantes)`);
+    return;
+  }
+
+  try {
+    const guildConfig = getGuildConfig(player.guildId);
+    const channelId = guildConfig?.alertChannelId;
+    if (!channelId) {
+      console.warn(`⚠️ Pas de channel d'alerte configuré pour le serveur ${player.guildId}. Ignorer l'alerte de reconnexion pour ${player.playerName}.`);
+      return;
+    }
+
+    const channel = await client.channels.fetch(channelId).catch(() => null);
+    if (!channel || channel.type !== ChannelType.GuildText) {
+      console.warn(`⚠️ Channel ${channelId} introuvable ou pas un text channel`);
+      return;
+    }
+
+    // Créer la progression bar
+    const progressBar = createProgressBar(daysInactive, threshold);
+    
+    // Récupérer l'utilisateur Discord pour son avatar
+    const user = await client.users.fetch(player.userId).catch(() => null);
+    
+    // Utiliser l'image du profil Pactify s'il existe, sinon avatar Discord
+    const thumbnailUrl = player.playerImageUrl || user?.displayAvatarURL({ size: 256 }) || 'https://cdn-icons-png.flaticon.com/512/747/747376.png';
+    
+    // Barre visuelle améliorée (vert pour reconnexion)
+    const percentage = Math.min((daysInactive / threshold) * 100, 100);
+    const barFilled = Math.round(percentage / 5);
+    const barEmpty = 20 - barFilled;
+    const visualBar = '🟩'.repeat(barFilled) + '⬜'.repeat(barEmpty);
+
+    const embed = new EmbedBuilder()
+      .setColor(0x00d26a)
+      .setTitle('✅ RECONNEXION DÉTECTÉE')
+      .setDescription(`**${player.playerName}** est revenu en ligne après **${inactivityTime}** d'absence`)
+      .setThumbnail(thumbnailUrl)
+      .addFields(
+        // ═══ INFOS JOUEUR ═══
+        {
+          name: '👤 JOUEUR',
+          value: `\`${player.playerName}\``,
+          inline: true
+        },
+        {
+          name: '🎮 FACTION',
+          value: player.playerFaction ? `\`${player.playerFaction}\`` : '`N/A`',
+          inline: true
+        },
+        {
+          name: '⏰ DURÉE D\'ABSENCE',
+          value: `**${inactivityTime}**`,
+          inline: true
+        },
+        // ═══ STATS ═══
+        {
+          name: '\u200b',
+          value: '**━━━━ STATISTIQUES ━━━━**',
+          inline: false
+        },
+        {
+          name: '📈 PROGRESSION DE L\'ABSENCE',
+          value: `${visualBar}\n\`${Math.round(percentage)}%\` — ${inactivityTime} / ${formatInactivityTime(threshold)}`,
+          inline: false
+        },
+        // ═══ BIENVENUE ═══
+        {
+          name: '\u200b',
+          value: '**━━━━ BIENVENUE ━━━━**',
+          inline: false
+        },
+        {
+          name: '🎉 RETOUR',
+          value: `Joueur revenu après **${inactivityTime}** d'inactivité. Bienvenue!`,
+          inline: false
+        }
+      )
+      .setTimestamp()
+      .setFooter({ text: `Gorille™・BOTS | Retour • Seuil: ${formatInactivityTime(threshold)}`, iconURL: user?.displayAvatarURL({ size: 256 }) || 'https://discord.com/assets/default_user_avatar.png' });
+
+    // Boutons
+    const row = new ActionRowBuilder()
+      .addComponents(
+        new ButtonBuilder()
+          .setLabel('Voir le profil Pactify')
+          .setStyle(ButtonStyle.Link)
+          .setURL(player.url),
+        new ButtonBuilder()
+          .setLabel('Voir le profil Discord')
+          .setStyle(ButtonStyle.Link)
+          .setURL(`https://discord.com/users/${player.userId}`)
+      );
+
+    await channel.send({ content: `<@${player.userId}>`, embeds: [embed], components: [row] });
+
+    // Créer un embed de bienvenue amélioré pour le DM et le channel
+    const welcomeEmbed = new EmbedBuilder()
+      .setColor(0x00d26a)
+      .setTitle('✅ BIENVENUE DE RETOUR')
+      .setDescription(`Nous sommes heureux de te voir de retour sur le serveur Pactify! 🎉`)
+      .setThumbnail(thumbnailUrl)
+      .addFields(
+        {
+          name: '👤 JOUEUR',
+          value: `\`${player.playerName}\``,
+          inline: true
+        },
+        {
+          name: '🎮 FACTION',
+          value: player.playerFaction ? `\`${player.playerFaction}\`` : '`N/A`',
+          inline: true
+        },
+        {
+          name: '⏰ DURÉE D\'ABSENCE',
+          value: `**${inactivityTime}**`,
+          inline: true
+        },
+        {
+          name: '\u200b',
+          value: '**━━━━ STATISTIQUES ━━━━**',
+          inline: false
+        },
+        {
+          name: '📈 PROGRESSION',
+          value: `${visualBar}\n\`${Math.round(percentage)}%\` — ${inactivityTime} / ${formatInactivityTime(threshold)}`,
+          inline: false
+        },
+        {
+          name: '\u200b',
+          value: '**━━━━ MESSAGE ━━━━**',
+          inline: false
+        },
+        {
+          name: '📢 BONNE CONTINUATION',
+          value: `Nous avons hâte de te revoir en action! Continua ta progression! 💪`,
+          inline: false
+        }
+      )
+      .setTimestamp()
+      .setFooter({ text: `Gorille™・BOTS | Retour • Seuil: ${formatInactivityTime(threshold)}`, iconURL: user?.displayAvatarURL({ size: 256 }) || 'https://discord.com/assets/default_user_avatar.png' });
+
+    // Envoyer l'embed de bienvenue dans le channel d'alerte
+    await channel.send({ embeds: [welcomeEmbed] });
+
+    // Envoyer aussi un message dans le channel de broadcast configuré (si présent)
+    try {
+      const broadcastChannelId = await getBroadcastChannel(player.guildId);
+      if (broadcastChannelId) {
+        const guild = client.guilds.cache.get(player.guildId);
+        const broadcastChannel = guild?.channels.cache.get(broadcastChannelId) || null;
+        if (broadcastChannel && broadcastChannel.isTextBased()) {
+          // Envoyer le même embed (sans mention) dans le channel broadcast
+          await broadcastChannel.send({ embeds: [welcomeEmbed] }).catch(() => null);
+          console.log(`📢 Broadcast de reconnexion envoyé pour ${player.playerName} sur guild ${player.guildId}`);
+        }
+      }
+    } catch (bcErr) {
+      console.warn(`⚠️ Erreur envoi broadcast reconnexion: ${bcErr?.message || bcErr}`);
+    }
+
+    // DM si activé
+    if (guildConfig?.alertsViaDM) {
+      try {
+        const userToNotify = await client.users.fetch(player.userId);
+        if (userToNotify) {
+          await userToNotify.send({ embeds: [welcomeEmbed] });
+          console.log(`📬 DM reconnexion envoyé à ${player.playerName}`);
+        }
+      } catch (dmError) {
+        console.warn(`⚠️ Impossible d'envoyer un DM à ${player.playerName}: ${dmError.message}`);
+      }
+    }
+
+    await updateLastReconnectionAlert(player.id);
+    console.log(`✅ Alerte reconnexion envoyée pour ${player.playerName}\n`);
+  } catch (error) {
+    console.error(`❌ Erreur alerte reconnexion:`, error.message);
+  }
+}
+
+async function sendInactivityAlert(player, daysInactive, threshold) {
+  const inactivityTime = formatInactivityTime(daysInactive);
+  console.log(`📤 Envoi de l'alerte d'inactivité pour ${player.playerName}... (Inactif: ${inactivityTime})`);
+
+  const lastAlert = await getLastAlertTime(player.id, 'inactive');
+  const now = Math.floor(Date.now() / 1000);
+
+  // Éviter les alertes doublons (minimum 1h entre)
+  if (lastAlert && now - lastAlert < 3600) {
+    const remaining = 3600 - (now - lastAlert);
+    console.log(`⏸️ Cooldown actif (${Math.ceil(remaining / 60)} min restantes)`);
+    return;
+  }
+
+  try {
+    const guildConfig = getGuildConfig(player.guildId);
+    const channelId = guildConfig?.alertChannelId;
+    if (!channelId) {
+      console.warn(`⚠️ Pas de channel d'alerte configuré pour le serveur ${player.guildId}. Ignorer l'alerte d'inactivité pour ${player.playerName}.`);
+      return;
+    }
+
+    console.log(`🔍 Récupération du channel ${channelId}...`);
+    const channel = await client.channels.fetch(channelId).catch((err) => {
+      console.error(`❌ Erreur récupération channel: ${err.message}`);
+      return null;
+    });
+
+    if (!channel) {
+      console.warn(`❌ Channel ${channelId} introuvable. Configure le serveur avec /config`);
+      return;
+    }
+    
+    if (channel.type !== ChannelType.GuildText) {
+      console.warn(`❌ Le channel ${channelId} n'est pas un channel tekstuel`);
+      return;
+    }
+
+    // Créer la progression bar
+    const progressBar = createProgressBar(daysInactive, threshold);
+
+    // Récupérer l'utilisateur Discord pour son avatar
+    const user = await client.users.fetch(player.userId).catch(() => null);
+
+    // Utiliser l'image du profil Pactify s'il existe, sinon avatar Discord
+    const thumbnailUrl = player.playerImageUrl || user?.displayAvatarURL({ size: 256 }) || 'https://cdn-icons-png.flaticon.com/512/747/747376.png';
+
+    // Barre visuelle améliorée
+    const percentage = Math.min((daysInactive / threshold) * 100, 100);
+    const barFilled = Math.round(percentage / 5);
+    const barEmpty = 20 - barFilled;
+    const visualBar = '🟥'.repeat(barFilled) + '⬜'.repeat(barEmpty);
+    
+    // Couleur progressive selon le degré d'inactivité
+    let alertColor = 0xff1744; // Rouge vif par défaut
+    if (daysInactive >= threshold * 1.5) alertColor = 0xff0000; // Rouge plus foncé si vraiment inactif
+    if (daysInactive >= threshold * 2) alertColor = 0x8b0000; // Marron foncé si très inactif
+
+    const embed = new EmbedBuilder()
+      .setColor(alertColor)
+      .setTitle('🚨 ALERTE D\'INACTIVITÉ 🚨')
+      .setDescription(`**${player.playerName}** a dépassé le seuil d'inactivité de **${formatInactivityTime(threshold)}**`)
+      .setThumbnail(thumbnailUrl)
+      .addFields(
+        // ═══ INFOS JOUEUR ═══
+        {
+          name: '👤・JOUEUR',
+          value: `\`${player.playerName}\``,
+          inline: true
+        },
+        {
+          name: '🎮・FACTION',
+          value: player.playerFaction ? `\`${player.playerFaction}\`` : '`N/A`',
+          inline: true
+        },
+        {
+          name: '👑・RÔLE',
+          value: player.playerRole ? `\`${player.playerRole}\`` : '`N/A`',
+          inline: true
+        },
+        // ═══ STATUT D'INACTIVITÉ ═══
+        {
+          name: '\u200b',
+          value: '**━━━━ STATUT D\'INACTIVITÉ ━━━━**',
+          inline: false
+        },
+        {
+          name: '⏱️・INACTIF DEPUIS',
+          value: `**${inactivityTime}**`,
+          inline: true
+        },
+        {
+          name: '📊・SEUIL',
+          value: `**${formatInactivityTime(threshold)}**`,
+          inline: true
+        },
+        {
+          name: '⚠️・DÉPASSEMENT',
+          value: `**+${formatInactivityTime(daysInactive - threshold)}**`,
+          inline: true
+        },
+        // ═══ PROGRESSION ═══
+        {
+          name: '\u200b',
+          value: '**━━━━ PROGRESSION ━━━━**',
+          inline: false
+        },
+        {
+          name: '📈・PROGRESSION DE L\'INACTIVITÉ',
+          value: `${visualBar}\n\`${Math.round(percentage)}%\` — ${inactivityTime} / ${formatInactivityTime(threshold)}`,
+          inline: false
+        },
+        // ═══ ACTION REQUISE ═══
+        {
+          name: '\u200b',
+          value: '**━━━━ ACTION REQUISE ━━━━**',
+          inline: false
+        },
+        {
+          name: '⚠️・NOTIFICATION',
+          value: `Le joueur doit **se reconnecter au serveur Pactify** dès que possible.\n> Manquant depuis: **${inactivityTime}**`,
+          inline: false
+        }
+      )
+      .setTimestamp()
+      .setFooter({ text: `Gorille™・BOTS | Alerte Inactivité • Seuil: ${formatInactivityTime(threshold)}`, iconURL: user?.displayAvatarURL({ size: 256 }) || 'https://discord.com/assets/default_user_avatar.png' });
+
+    const mention = `<@${player.userId}>`;
+    console.log(`📨 Envoi du message au channel ${channel.id}...`);
+    
+    // Boutons
+    const row = new ActionRowBuilder()
+      .addComponents(
+        new ButtonBuilder()
+          .setLabel('Voir le profil Pactify')
+          .setStyle(ButtonStyle.Link)
+          .setURL(player.url),
+        new ButtonBuilder()
+          .setLabel('Voir le profil Discord')
+          .setStyle(ButtonStyle.Link)
+          .setURL(`https://discord.com/users/${player.userId}`)
+      );
+
+    await channel.send({ content: mention, embeds: [embed], components: [row] });
+
+    // Envoyer un DM si activé
+    if (guildConfig?.alertsViaDM) {
+      try {
+        const userToNotify = await client.users.fetch(player.userId);
+        if (userToNotify) {
+          const dmEmbed = new EmbedBuilder()
+            .setColor(0xff0000)
+            .setTitle('🔴 ALERTE D\'INACTIVITÉ')
+            .setDescription('Tu as dépassé le seuil d\'inactivité sur ce serveur Pactify. Reconnecte-toi dès que possible pour éviter les conséquences.')
+            .addFields(
+              {
+                name: '🔗 Compte',
+                value: `\`${player.playerName}\``,
+                inline: true
+              },
+              {
+                name: '⏱️ Inactif depuis',
+                value: `**${inactivityTime}**`,
+                inline: true
+              },
+              {
+                name: '📊 Seuil',
+                value: `**${formatInactivityTime(threshold)}**`,
+                inline: true
+              },
+              {
+                name: '⚠️ Dépassement',
+                value: `**+${formatInactivityTime(daysInactive - threshold)}**`,
+                inline: true
+              },
+              {
+                name: '📌 Action requise',
+                value: 'Reconnecte-toi au serveur Pactify pour revenir dans la partie.',
+                inline: false
+              }
+            )
+            .setTimestamp()
+            .setFooter({ text: 'Gorille™・BOTS | Alerte d\'inactivité', iconURL: user?.displayAvatarURL({ size: 256 }) || 'https://discord.com/assets/default_user_avatar.png' });
+
+          await userToNotify.send({ embeds: [dmEmbed] });
+          console.log(`📬 DM envoyé à ${player.playerName}`);
+        }
+      } catch (dmError) {
+        console.warn(`⚠️ Impossible d'envoyer un DM à ${player.playerName}: ${dmError.message}`);
+      }
+    }
+
+    await updateAlertSentTime(player.id, 'inactive');
+    console.log(`✅ Alerte envoyée pour ${player.playerName} !\n`);
+  } catch (error) {
+    console.error(`❌ Erreur envoi alerte pour ${player.playerName}:`, error.message);
+  }
+}
+
+
+async function sendReminderAlert(player, daysInactive, threshold) {
+  const inactivityTime = formatInactivityTime(daysInactive);
+  console.log(`📣 Envoi du rappel pour ${player.playerName}...`);
+  
+  const lastReminder = await getLastAlertTime(player.id, 'reminder');
+  const now = Math.floor(Date.now() / 1000);
+
+  // Éviter les rappels doublons (minimum 24h entre)
+  if (lastReminder && now - lastReminder < 86400) {
+    console.log(`⏸️ Rappel en cooldown (24h requis)`);
+    return;
+  }
+
+  try {
+    const guildConfig = getGuildConfig(player.guildId);
+    const channelId = guildConfig?.alertChannelId;
+    if (!channelId) {
+      console.warn(`⚠️ Pas de channel d'alerte configuré pour le serveur ${player.guildId}. Ignorer le rappel pour ${player.playerName}.`);
+      return;
+    }
+
+    const channel = await client.channels.fetch(channelId).catch(() => null);
+
+    if (!channel || channel.type !== ChannelType.GuildText) {
+      return;
+    }
+
+    // Créer la progression bar
+    const progressBar = createProgressBar(daysInactive, threshold);
+
+    // Récupérer l'utilisateur Discord pour son avatar
+    const user = await client.users.fetch(player.userId).catch(() => null);
+
+    // Utiliser l'image du profil Pactify s'il existe, sinon avatar Discord
+    const thumbnailUrl = player.playerImageUrl || user?.displayAvatarURL({ size: 256 }) || 'https://cdn-icons-png.flaticon.com/512/747/747376.png';
+
+    // Barre visuelle améliorée (orange pour rappel)
+    const percentage = Math.min((daysInactive / threshold) * 100, 100);
+    const barFilled = Math.round(percentage / 5);
+    const barEmpty = 20 - barFilled;
+    const visualBar = '🟧'.repeat(barFilled) + '⬜'.repeat(barEmpty);
+
+    const embed = new EmbedBuilder()
+      .setColor(0xffa500)
+      .setTitle('⏰ RAPPEL D\'INACTIVITÉ - 24H ÉCOULÉES')
+      .setDescription(`**${player.playerName}** est toujours inactif depuis **${inactivityTime}**`)
+      .setThumbnail(thumbnailUrl)
+      .addFields(
+        // ═══ INFOS JOUEUR ═══
+        {
+          name: '👤 JOUEUR',
+          value: `\`${player.playerName}\``,
+          inline: true
+        },
+        {
+          name: '🎮 FACTION',
+          value: player.playerFaction ? `\`${player.playerFaction}\`` : '`N/A`',
+          inline: true
+        },
+        {
+          name: '⏰ DEPUIS',
+          value: `**${inactivityTime}**`,
+          inline: true
+        },
+        // ═══ STATUS ═══
+        {
+          name: '\u200b',
+          value: '**━━━━ STATUT D\'INACTIVITÉ ━━━━**',
+          inline: false
+        },
+        {
+          name: '📊 SEUIL',
+          value: `**${formatInactivityTime(threshold)}**`,
+          inline: true
+        },
+        {
+          name: '⚠️ DÉPASSEMENT',
+          value: `**+${formatInactivityTime(daysInactive - threshold)}**`,
+          inline: true
+        },
+        // ═══ PROGRESSION ═══
+        {
+          name: '\u200b',
+          value: '**━━━━ PROGRESSION ━━━━**',
+          inline: false
+        },
+        {
+          name: '📈 PROGRESSION DE L\'INACTIVITÉ',
+          value: `${visualBar}\n\`${Math.round(percentage)}%\` — ${inactivityTime} / ${formatInactivityTime(threshold)}`,
+          inline: false
+        },
+        // ═══ ACTION ═══
+        {
+          name: '\u200b',
+          value: '**━━━━ ACTION REQUISE ━━━━**',
+          inline: false
+        },
+        {
+          name: '📢 RAPPEL',
+          value: `Le joueur est **toujours absent** après **${inactivityTime}**.\n> Veuillez vous reconnecter dès que possible!`,
+          inline: false
+        }
+      )
+      .setTimestamp()
+      .setFooter({ text: 'Gorille™・BOTS | Rappel Inactivité', iconURL: user?.displayAvatarURL({ size: 256 }) || 'https://discord.com/assets/default_user_avatar.png' });
+
+    const mention = `<@${player.userId}>`;
+    
+    // Boutons
+    const row = new ActionRowBuilder()
+      .addComponents(
+        new ButtonBuilder()
+          .setLabel('Voir le profil Pactify')
+          .setStyle(ButtonStyle.Link)
+          .setURL(player.url),
+        new ButtonBuilder()
+          .setLabel('Voir le profil Discord')
+          .setStyle(ButtonStyle.Link)
+          .setURL(`https://discord.com/users/${player.userId}`)
+      );
+
+    await channel.send({ content: mention, embeds: [embed], components: [row] });
+
+    // Envoyer un DM si activé
+    if (guildConfig?.alertsViaDM) {
+      try {
+        const userToNotify = await client.users.fetch(player.userId);
+        if (userToNotify) {
+          const dmEmbed = new EmbedBuilder()
+            .setColor(0xffa500)
+            .setTitle('🟠 RAPPEL D\'INACTIVITÉ')
+            .setDescription('Ton inactivité est toujours active sur ce serveur Pactify. Pense à te reconnecter dès que possible.')
+            .addFields(
+              {
+                name: '🔗 Compte',
+                value: `\`${player.playerName}\``,
+                inline: true
+              },
+              {
+                name: '⏱️ Inactif depuis',
+                value: `**${inactivityTime}**`,
+                inline: true
+              },
+              {
+                name: '📊 Seuil',
+                value: `**${formatInactivityTime(threshold)}**`,
+                inline: true
+              },
+              {
+                name: '⚠️ Dépassement',
+                value: `**+${formatInactivityTime(daysInactive - threshold)}**`,
+                inline: true
+              },
+              {
+                name: '📌 Recommandation',
+                value: 'Reconnecte-toi sur Pactify pour rétablir ton activité et éviter les pénalités.',
+                inline: false
+              }
+            )
+            .setTimestamp()
+            .setFooter({ text: 'Gorille™・BOTS | Rappel d\'inactivité', iconURL: user?.displayAvatarURL({ size: 256 }) || 'https://discord.com/assets/default_user_avatar.png' });
+
+          await userToNotify.send({ embeds: [dmEmbed] });
+          console.log(`📬 DM rappel envoyé à ${player.playerName}`);
+        }
+      } catch (dmError) {
+        console.warn(`⚠️ Impossible d'envoyer un DM à ${player.playerName}: ${dmError.message}`);
+      }
+    }
+
+    await updateAlertSentTime(player.id, 'reminder');
+    console.log(`✅ Rappel envoyé pour ${player.playerName} !\n`);
+  } catch (error) {
+    console.error(`❌ Erreur envoi rappel pour ${player.playerName}:`, error.message);
+  }
+}

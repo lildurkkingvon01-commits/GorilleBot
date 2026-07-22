@@ -1,0 +1,33 @@
+{
+  "name": "@redguard/api",
+  "version": "1.0.0",
+  "description": "Redguard Discord Admin Bot - API Backend",
+  "private": true,
+  "main": "dist/main.js",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "build": "tsc",
+    "start": "tsx src/main.ts",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio",
+    "lint": "eslint src/",
+    "format": "prettier --write src/"
+  },
+  "dependencies": {
+    "@fastify/cors": "^8.5.0",
+    "@prisma/client": "5.10.0",
+    "dotenv": "^16.6.1",
+    "fastify": "^4.24.3",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.16.5",
+    "eslint": "^9.32.0",
+    "prettier": "^3.7.3",
+    "prisma": "^5.10.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.8.3"
+  }
+}

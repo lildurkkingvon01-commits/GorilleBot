@@ -1,0 +1,31 @@
+{
+  "[html]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[ejs]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": false
+  },
+  "files.associations": {
+    "*.ejs": "html"
+  },
+  "css.validate": false,
+  "css.lint.compatibleVendorPrefixes": "off",
+  "css.lint.vendorPrefix": "off",
+  "css.lint.universalSelector": "off",
+  "css.lint.zeroUnits": "off",
+  "css.lint.fontFaceProperties": "off",
+  "[css]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "files.exclude": {
+    "**/*.js.map": true,
+    "**/node_modules": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true
+  }
+}
+

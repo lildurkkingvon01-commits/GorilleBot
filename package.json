@@ -1,0 +1,33 @@
+{
+  "name": "redguard-monorepo",
+  "version": "1.0.0",
+  "description": "Redguard - Discord Admin Bot with Fullstack Dashboard",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/bot",
+    "apps/api",
+    "packages/shared"
+  ],
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "bot:start": "node src/index.js",
+    "bot:dev": "node --watch src/index.js",
+    "api:dev": "workspace @redguard/api dev",
+    "api:build": "workspace @redguard/api build",
+    "api:start": "workspace @redguard/api start",
+    "shared:build": "workspace @redguard/shared build",
+    "monorepo:install": "npm install && npm install --workspace @redguard/shared && npm install --workspace @redguard/api"
+  },
+  "dependencies": {
+    "axios": "^1.6.2",
+    "cheerio": "^1.0.0-rc.12",
+    "discord.js": "^14.14.0",
+    "dotenv": "^16.3.1",
+    "node-cron": "^3.0.2",
+    "pg": "^8.20.0",
+    "pg-promise": "^12.6.2"
+  }
+}
+

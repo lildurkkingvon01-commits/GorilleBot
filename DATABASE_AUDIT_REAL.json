@@ -1,0 +1,3864 @@
+{
+  "database": "gorille_bot",
+  "timestamp": "2026-04-26T10:00:54.293Z",
+  "tables": [
+    {
+      "name": "announcements",
+      "rowCount": 0,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('announcements_id_seq'::regclass)",
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "guild_id",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "channel_id",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "title",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "content",
+          "data_type": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "scheduled_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "sent_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "status",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": "'pending'::character varying",
+          "character_maximum_length": 50,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "created_by",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "constraints": [
+        {
+          "constraint_name": "announcements_channel_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "announcements_content_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "announcements_guild_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "announcements_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "announcements_pkey",
+          "constraint_type": "PRIMARY KEY",
+          "column_name": "id"
+        },
+        {
+          "constraint_name": "announcements_title_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "indexname": "announcements_pkey",
+          "indexdef": "CREATE UNIQUE INDEX announcements_pkey ON public.announcements USING btree (id)"
+        },
+        {
+          "indexname": "idx_announcements",
+          "indexdef": "CREATE INDEX idx_announcements ON public.announcements USING btree (guild_id, status)"
+        }
+      ]
+    },
+    {
+      "name": "anti_spam_blocks",
+      "rowCount": 1,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('anti_spam_blocks_id_seq'::regclass)",
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "user_id",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "guild_id",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "reason",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "blocked_until",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "constraints": [
+        {
+          "constraint_name": "anti_spam_blocks_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "anti_spam_blocks_pkey",
+          "constraint_type": "PRIMARY KEY",
+          "column_name": "id"
+        },
+        {
+          "constraint_name": "anti_spam_blocks_user_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "indexname": "anti_spam_blocks_pkey",
+          "indexdef": "CREATE UNIQUE INDEX anti_spam_blocks_pkey ON public.anti_spam_blocks USING btree (id)"
+        },
+        {
+          "indexname": "idx_anti_spam_blocked_until",
+          "indexdef": "CREATE INDEX idx_anti_spam_blocked_until ON public.anti_spam_blocks USING btree (blocked_until)"
+        },
+        {
+          "indexname": "idx_anti_spam_user_id",
+          "indexdef": "CREATE INDEX idx_anti_spam_user_id ON public.anti_spam_blocks USING btree (user_id)"
+        }
+      ]
+    },
+    {
+      "name": "audit_logs",
+      "rowCount": 305,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('audit_logs_id_seq'::regclass)",
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "action",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "user_id",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "guild_id",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "target_id",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "details",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "target_name",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "constraints": [
+        {
+          "constraint_name": "audit_logs_action_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "audit_logs_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "audit_logs_pkey",
+          "constraint_type": "PRIMARY KEY",
+          "column_name": "id"
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "indexname": "audit_logs_pkey",
+          "indexdef": "CREATE UNIQUE INDEX audit_logs_pkey ON public.audit_logs USING btree (id)"
+        }
+      ]
+    },
+    {
+      "name": "automod_config",
+      "rowCount": 0,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('automod_config_id_seq'::regclass)",
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "guild_id",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "setting_key",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "setting_value",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "constraints": [
+        {
+          "constraint_name": "automod_config_guild_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "automod_config_guild_id_setting_key_key",
+          "constraint_type": "UNIQUE",
+          "column_name": "guild_id"
+        },
+        {
+          "constraint_name": "automod_config_guild_id_setting_key_key",
+          "constraint_type": "UNIQUE",
+          "column_name": "setting_key"
+        },
+        {
+          "constraint_name": "automod_config_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "automod_config_pkey",
+          "constraint_type": "PRIMARY KEY",
+          "column_name": "id"
+        },
+        {
+          "constraint_name": "automod_config_setting_key_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "indexname": "automod_config_guild_id_setting_key_key",
+          "indexdef": "CREATE UNIQUE INDEX automod_config_guild_id_setting_key_key ON public.automod_config USING btree (guild_id, setting_key)"
+        },
+        {
+          "indexname": "automod_config_pkey",
+          "indexdef": "CREATE UNIQUE INDEX automod_config_pkey ON public.automod_config USING btree (id)"
+        }
+      ]
+    },
+    {
+      "name": "automod_violations",
+      "rowCount": 0,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('automod_violations_id_seq'::regclass)",
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "guild_id",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "channel_id",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "user_id",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "violation_type",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 50,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "message_content",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "action_taken",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "constraints": [
+        {
+          "constraint_name": "automod_violations_channel_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "automod_violations_guild_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "automod_violations_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "automod_violations_pkey",
+          "constraint_type": "PRIMARY KEY",
+          "column_name": "id"
+        },
+        {
+          "constraint_name": "automod_violations_user_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "automod_violations_violation_type_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "indexname": "automod_violations_pkey",
+          "indexdef": "CREATE UNIQUE INDEX automod_violations_pkey ON public.automod_violations USING btree (id)"
+        },
+        {
+          "indexname": "idx_violations",
+          "indexdef": "CREATE INDEX idx_violations ON public.automod_violations USING btree (guild_id, user_id, violation_type)"
+        }
+      ]
+    },
+    {
+      "name": "backups_metadata",
+      "rowCount": 0,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('backups_metadata_id_seq'::regclass)",
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "backup_name",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "backup_type",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 20,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "created_by",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "file_path",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "file_size_mb",
+          "data_type": "double precision",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "description",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "restored_from",
+          "data_type": "boolean",
+          "is_nullable": "YES",
+          "column_default": "false",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "restored_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "constraints": [
+        {
+          "constraint_name": "backups_metadata_backup_name_key",
+          "constraint_type": "UNIQUE",
+          "column_name": "backup_name"
+        },
+        {
+          "constraint_name": "backups_metadata_backup_name_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "backups_metadata_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "backups_metadata_pkey",
+          "constraint_type": "PRIMARY KEY",
+          "column_name": "id"
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "indexname": "backups_metadata_backup_name_key",
+          "indexdef": "CREATE UNIQUE INDEX backups_metadata_backup_name_key ON public.backups_metadata USING btree (backup_name)"
+        },
+        {
+          "indexname": "backups_metadata_pkey",
+          "indexdef": "CREATE UNIQUE INDEX backups_metadata_pkey ON public.backups_metadata USING btree (id)"
+        },
+        {
+          "indexname": "idx_backups_created_at",
+          "indexdef": "CREATE INDEX idx_backups_created_at ON public.backups_metadata USING btree (created_at)"
+        }
+      ]
+    },
+    {
+      "name": "banned_guilds",
+      "rowCount": 3,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('banned_guilds_id_seq'::regclass)",
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "guild_id",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "guild_name",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "reason",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "banned_by",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "banned_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "expires_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "is_permanent",
+          "data_type": "boolean",
+          "is_nullable": "YES",
+          "column_default": "true",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "active",
+          "data_type": "boolean",
+          "is_nullable": "YES",
+          "column_default": "true",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "constraints": [
+        {
+          "constraint_name": "banned_guilds_guild_id_key",
+          "constraint_type": "UNIQUE",
+          "column_name": "guild_id"
+        },
+        {
+          "constraint_name": "banned_guilds_guild_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "banned_guilds_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "banned_guilds_pkey",
+          "constraint_type": "PRIMARY KEY",
+          "column_name": "id"
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "indexname": "banned_guilds_guild_id_key",
+          "indexdef": "CREATE UNIQUE INDEX banned_guilds_guild_id_key ON public.banned_guilds USING btree (guild_id)"
+        },
+        {
+          "indexname": "banned_guilds_pkey",
+          "indexdef": "CREATE UNIQUE INDEX banned_guilds_pkey ON public.banned_guilds USING btree (id)"
+        },
+        {
+          "indexname": "idx_banned_guilds_active",
+          "indexdef": "CREATE INDEX idx_banned_guilds_active ON public.banned_guilds USING btree (active)"
+        },
+        {
+          "indexname": "idx_banned_guilds_guild_id",
+          "indexdef": "CREATE INDEX idx_banned_guilds_guild_id ON public.banned_guilds USING btree (guild_id)"
+        }
+      ]
+    },
+    {
+      "name": "command_cooldowns",
+      "rowCount": 0,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('command_cooldowns_id_seq'::regclass)",
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "guild_id",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "command_name",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "duration_ms",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "cooldown_type",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": "'user'::character varying",
+          "character_maximum_length": 50,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "updated_by",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "constraints": [
+        {
+          "constraint_name": "command_cooldowns_command_name_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "command_cooldowns_duration_ms_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "command_cooldowns_guild_id_command_name_cooldown_type_key",
+          "constraint_type": "UNIQUE",
+          "column_name": "command_name"
+        },
+        {
+          "constraint_name": "command_cooldowns_guild_id_command_name_cooldown_type_key",
+          "constraint_type": "UNIQUE",
+          "column_name": "cooldown_type"
+        },
+        {
+          "constraint_name": "command_cooldowns_guild_id_command_name_cooldown_type_key",
+          "constraint_type": "UNIQUE",
+          "column_name": "guild_id"
+        },
+        {
+          "constraint_name": "command_cooldowns_guild_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "command_cooldowns_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "command_cooldowns_pkey",
+          "constraint_type": "PRIMARY KEY",
+          "column_name": "id"
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "indexname": "command_cooldowns_guild_id_command_name_cooldown_type_key",
+          "indexdef": "CREATE UNIQUE INDEX command_cooldowns_guild_id_command_name_cooldown_type_key ON public.command_cooldowns USING btree (guild_id, command_name, cooldown_type)"
+        },
+        {
+          "indexname": "command_cooldowns_pkey",
+          "indexdef": "CREATE UNIQUE INDEX command_cooldowns_pkey ON public.command_cooldowns USING btree (id)"
+        },
+        {
+          "indexname": "idx_cooldowns",
+          "indexdef": "CREATE INDEX idx_cooldowns ON public.command_cooldowns USING btree (guild_id, command_name)"
+        }
+      ]
+    },
+    {
+      "name": "command_logs",
+      "rowCount": 238,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('command_logs_id_seq'::regclass)",
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "command_name",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 50,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "user_id",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "username",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "guild_id",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "guild_name",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "arguments",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "success",
+          "data_type": "boolean",
+          "is_nullable": "YES",
+          "column_default": "true",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "error_message",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "execution_time_ms",
+          "data_type": "integer",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "constraints": [
+        {
+          "constraint_name": "command_logs_command_name_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "command_logs_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "command_logs_pkey",
+          "constraint_type": "PRIMARY KEY",
+          "column_name": "id"
+        },
+        {
+          "constraint_name": "command_logs_user_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "indexname": "command_logs_pkey",
+          "indexdef": "CREATE UNIQUE INDEX command_logs_pkey ON public.command_logs USING btree (id)"
+        },
+        {
+          "indexname": "idx_command_logs_command_name",
+          "indexdef": "CREATE INDEX idx_command_logs_command_name ON public.command_logs USING btree (command_name)"
+        },
+        {
+          "indexname": "idx_command_logs_created_at",
+          "indexdef": "CREATE INDEX idx_command_logs_created_at ON public.command_logs USING btree (created_at)"
+        },
+        {
+          "indexname": "idx_command_logs_guild_id",
+          "indexdef": "CREATE INDEX idx_command_logs_guild_id ON public.command_logs USING btree (guild_id)"
+        },
+        {
+          "indexname": "idx_command_logs_user_id",
+          "indexdef": "CREATE INDEX idx_command_logs_user_id ON public.command_logs USING btree (user_id)"
+        }
+      ]
+    },
+    {
+      "name": "command_maintenance",
+      "rowCount": 2,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('command_maintenance_id_seq'::regclass)",
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "command_name",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "enabled",
+          "data_type": "boolean",
+          "is_nullable": "YES",
+          "column_default": "false",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "updated_by",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "constraints": [
+        {
+          "constraint_name": "command_maintenance_command_name_key",
+          "constraint_type": "UNIQUE",
+          "column_name": "command_name"
+        },
+        {
+          "constraint_name": "command_maintenance_command_name_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "command_maintenance_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "command_maintenance_pkey",
+          "constraint_type": "PRIMARY KEY",
+          "column_name": "id"
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "indexname": "command_maintenance_command_name_key",
+          "indexdef": "CREATE UNIQUE INDEX command_maintenance_command_name_key ON public.command_maintenance USING btree (command_name)"
+        },
+        {
+          "indexname": "command_maintenance_pkey",
+          "indexdef": "CREATE UNIQUE INDEX command_maintenance_pkey ON public.command_maintenance USING btree (id)"
+        }
+      ]
+    },
+    {
+      "name": "command_permissions",
+      "rowCount": 0,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('command_permissions_id_seq'::regclass)",
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "guild_id",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "command_name",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "role_id",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "user_id",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "permission_type",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 50,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "allowed",
+          "data_type": "boolean",
+          "is_nullable": "YES",
+          "column_default": "true",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "updated_by",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "constraints": [
+        {
+          "constraint_name": "command_permissions_command_name_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "command_permissions_guild_id_command_name_role_id_user_id_p_key",
+          "constraint_type": "UNIQUE",
+          "column_name": "permission_type"
+        },
+        {
+          "constraint_name": "command_permissions_guild_id_command_name_role_id_user_id_p_key",
+          "constraint_type": "UNIQUE",
+          "column_name": "guild_id"
+        },
+        {
+          "constraint_name": "command_permissions_guild_id_command_name_role_id_user_id_p_key",
+          "constraint_type": "UNIQUE",
+          "column_name": "command_name"
+        },
+        {
+          "constraint_name": "command_permissions_guild_id_command_name_role_id_user_id_p_key",
+          "constraint_type": "UNIQUE",
+          "column_name": "role_id"
+        },
+        {
+          "constraint_name": "command_permissions_guild_id_command_name_role_id_user_id_p_key",
+          "constraint_type": "UNIQUE",
+          "column_name": "user_id"
+        },
+        {
+          "constraint_name": "command_permissions_guild_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "command_permissions_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "command_permissions_permission_type_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "command_permissions_pkey",
+          "constraint_type": "PRIMARY KEY",
+          "column_name": "id"
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "indexname": "command_permissions_guild_id_command_name_role_id_user_id_p_key",
+          "indexdef": "CREATE UNIQUE INDEX command_permissions_guild_id_command_name_role_id_user_id_p_key ON public.command_permissions USING btree (guild_id, command_name, role_id, user_id, permission_type)"
+        },
+        {
+          "indexname": "command_permissions_pkey",
+          "indexdef": "CREATE UNIQUE INDEX command_permissions_pkey ON public.command_permissions USING btree (id)"
+        },
+        {
+          "indexname": "idx_cmd_perms",
+          "indexdef": "CREATE INDEX idx_cmd_perms ON public.command_permissions USING btree (guild_id, command_name)"
+        }
+      ]
+    },
+    {
+      "name": "command_status",
+      "rowCount": 0,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('command_status_id_seq'::regclass)",
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "guild_id",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "command_name",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "enabled",
+          "data_type": "boolean",
+          "is_nullable": "YES",
+          "column_default": "true",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "updated_by",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "constraints": [
+        {
+          "constraint_name": "command_status_command_name_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "command_status_guild_id_command_name_key",
+          "constraint_type": "UNIQUE",
+          "column_name": "guild_id"
+        },
+        {
+          "constraint_name": "command_status_guild_id_command_name_key",
+          "constraint_type": "UNIQUE",
+          "column_name": "command_name"
+        },
+        {
+          "constraint_name": "command_status_guild_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "command_status_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "command_status_pkey",
+          "constraint_type": "PRIMARY KEY",
+          "column_name": "id"
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "indexname": "command_status_guild_id_command_name_key",
+          "indexdef": "CREATE UNIQUE INDEX command_status_guild_id_command_name_key ON public.command_status USING btree (guild_id, command_name)"
+        },
+        {
+          "indexname": "command_status_pkey",
+          "indexdef": "CREATE UNIQUE INDEX command_status_pkey ON public.command_status USING btree (id)"
+        }
+      ]
+    },
+    {
+      "name": "cooldown_tracking",
+      "rowCount": 9,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('cooldown_tracking_id_seq'::regclass)",
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "guild_id",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "command_name",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "user_id",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "expires_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "constraints": [
+        {
+          "constraint_name": "cooldown_tracking_command_name_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "cooldown_tracking_expires_at_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "cooldown_tracking_guild_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "cooldown_tracking_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "cooldown_tracking_pkey",
+          "constraint_type": "PRIMARY KEY",
+          "column_name": "id"
+        },
+        {
+          "constraint_name": "cooldown_tracking_user_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "indexname": "cooldown_tracking_pkey",
+          "indexdef": "CREATE UNIQUE INDEX cooldown_tracking_pkey ON public.cooldown_tracking USING btree (id)"
+        },
+        {
+          "indexname": "idx_tracking",
+          "indexdef": "CREATE INDEX idx_tracking ON public.cooldown_tracking USING btree (guild_id, command_name, user_id)"
+        }
+      ]
+    },
+    {
+      "name": "discord_events",
+      "rowCount": 3,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('discord_events_id_seq'::regclass)",
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "guild_id",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "event_type",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 50,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "target_id",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "executor_id",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "details",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "constraints": [
+        {
+          "constraint_name": "discord_events_event_type_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "discord_events_guild_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "discord_events_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "discord_events_pkey",
+          "constraint_type": "PRIMARY KEY",
+          "column_name": "id"
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "indexname": "discord_events_pkey",
+          "indexdef": "CREATE UNIQUE INDEX discord_events_pkey ON public.discord_events USING btree (id)"
+        },
+        {
+          "indexname": "idx_discord_events_guild",
+          "indexdef": "CREATE INDEX idx_discord_events_guild ON public.discord_events USING btree (guild_id, created_at)"
+        },
+        {
+          "indexname": "idx_discord_events_type",
+          "indexdef": "CREATE INDEX idx_discord_events_type ON public.discord_events USING btree (event_type, created_at)"
+        },
+        {
+          "indexname": "idx_events",
+          "indexdef": "CREATE INDEX idx_events ON public.discord_events USING btree (guild_id, event_type, created_at)"
+        }
+      ]
+    },
+    {
+      "name": "error_logs",
+      "rowCount": 0,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('error_logs_id_seq'::regclass)",
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "error_type",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "error_message",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "error_stack",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "command_name",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 50,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "user_id",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "guild_id",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "severity",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 20,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "resolved",
+          "data_type": "boolean",
+          "is_nullable": "YES",
+          "column_default": "false",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "constraints": [
+        {
+          "constraint_name": "error_logs_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "error_logs_pkey",
+          "constraint_type": "PRIMARY KEY",
+          "column_name": "id"
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "indexname": "error_logs_pkey",
+          "indexdef": "CREATE UNIQUE INDEX error_logs_pkey ON public.error_logs USING btree (id)"
+        },
+        {
+          "indexname": "idx_error_logs_created_at",
+          "indexdef": "CREATE INDEX idx_error_logs_created_at ON public.error_logs USING btree (created_at)"
+        },
+        {
+          "indexname": "idx_error_logs_severity",
+          "indexdef": "CREATE INDEX idx_error_logs_severity ON public.error_logs USING btree (severity)"
+        },
+        {
+          "indexname": "idx_error_logs_type",
+          "indexdef": "CREATE INDEX idx_error_logs_type ON public.error_logs USING btree (error_type)"
+        }
+      ]
+    },
+    {
+      "name": "feature_flags",
+      "rowCount": 11,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('feature_flags_id_seq'::regclass)",
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "flag_name",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "enabled",
+          "data_type": "boolean",
+          "is_nullable": "YES",
+          "column_default": "false",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "description",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "constraints": [
+        {
+          "constraint_name": "feature_flags_flag_name_key",
+          "constraint_type": "UNIQUE",
+          "column_name": "flag_name"
+        },
+        {
+          "constraint_name": "feature_flags_flag_name_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "feature_flags_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "feature_flags_pkey",
+          "constraint_type": "PRIMARY KEY",
+          "column_name": "id"
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "indexname": "feature_flags_flag_name_key",
+          "indexdef": "CREATE UNIQUE INDEX feature_flags_flag_name_key ON public.feature_flags USING btree (flag_name)"
+        },
+        {
+          "indexname": "feature_flags_pkey",
+          "indexdef": "CREATE UNIQUE INDEX feature_flags_pkey ON public.feature_flags USING btree (id)"
+        },
+        {
+          "indexname": "idx_feature_flags_name",
+          "indexdef": "CREATE INDEX idx_feature_flags_name ON public.feature_flags USING btree (flag_name)"
+        }
+      ]
+    },
+    {
+      "name": "global_config",
+      "rowCount": 0,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('global_config_id_seq'::regclass)",
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "config_key",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "config_value",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "constraints": [
+        {
+          "constraint_name": "global_config_config_key_key",
+          "constraint_type": "UNIQUE",
+          "column_name": "config_key"
+        },
+        {
+          "constraint_name": "global_config_config_key_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "global_config_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "global_config_pkey",
+          "constraint_type": "PRIMARY KEY",
+          "column_name": "id"
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "indexname": "global_config_config_key_key",
+          "indexdef": "CREATE UNIQUE INDEX global_config_config_key_key ON public.global_config USING btree (config_key)"
+        },
+        {
+          "indexname": "global_config_pkey",
+          "indexdef": "CREATE UNIQUE INDEX global_config_pkey ON public.global_config USING btree (id)"
+        }
+      ]
+    },
+    {
+      "name": "guild_configs",
+      "rowCount": 2,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('guild_configs_id_seq'::regclass)",
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "guild_id",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "inactivity_threshold",
+          "data_type": "integer",
+          "is_nullable": "YES",
+          "column_default": "9",
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "check_frequency",
+          "data_type": "integer",
+          "is_nullable": "YES",
+          "column_default": "30",
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "reminder_delay",
+          "data_type": "integer",
+          "is_nullable": "YES",
+          "column_default": "24",
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "broadcast_channel_id",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "command_permissions",
+          "data_type": "jsonb",
+          "is_nullable": "YES",
+          "column_default": "'{}'::jsonb",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "constraints": [
+        {
+          "constraint_name": "guild_configs_guild_id_key",
+          "constraint_type": "UNIQUE",
+          "column_name": "guild_id"
+        },
+        {
+          "constraint_name": "guild_configs_guild_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "guild_configs_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "guild_configs_pkey",
+          "constraint_type": "PRIMARY KEY",
+          "column_name": "id"
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "indexname": "guild_configs_guild_id_key",
+          "indexdef": "CREATE UNIQUE INDEX guild_configs_guild_id_key ON public.guild_configs USING btree (guild_id)"
+        },
+        {
+          "indexname": "guild_configs_pkey",
+          "indexdef": "CREATE UNIQUE INDEX guild_configs_pkey ON public.guild_configs USING btree (id)"
+        }
+      ]
+    },
+    {
+      "name": "guild_modules",
+      "rowCount": 50,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('guild_modules_id_seq'::regclass)",
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "guild_id",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "module_name",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "enabled",
+          "data_type": "boolean",
+          "is_nullable": "YES",
+          "column_default": "true",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "config",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "updated_by",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "constraints": [
+        {
+          "constraint_name": "guild_modules_guild_id_module_name_key",
+          "constraint_type": "UNIQUE",
+          "column_name": "guild_id"
+        },
+        {
+          "constraint_name": "guild_modules_guild_id_module_name_key",
+          "constraint_type": "UNIQUE",
+          "column_name": "module_name"
+        },
+        {
+          "constraint_name": "guild_modules_guild_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "guild_modules_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "guild_modules_module_name_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "guild_modules_pkey",
+          "constraint_type": "PRIMARY KEY",
+          "column_name": "id"
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "indexname": "guild_modules_guild_id_module_name_key",
+          "indexdef": "CREATE UNIQUE INDEX guild_modules_guild_id_module_name_key ON public.guild_modules USING btree (guild_id, module_name)"
+        },
+        {
+          "indexname": "guild_modules_pkey",
+          "indexdef": "CREATE UNIQUE INDEX guild_modules_pkey ON public.guild_modules USING btree (id)"
+        }
+      ]
+    },
+    {
+      "name": "guild_stats",
+      "rowCount": 11,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('guild_stats_id_seq'::regclass)",
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "guild_id",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "command_name",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "stat_date",
+          "data_type": "date",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "execution_count",
+          "data_type": "integer",
+          "is_nullable": "YES",
+          "column_default": "0",
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "total_execution_time_ms",
+          "data_type": "integer",
+          "is_nullable": "YES",
+          "column_default": "0",
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "min_execution_ms",
+          "data_type": "integer",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "max_execution_ms",
+          "data_type": "integer",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "constraints": [
+        {
+          "constraint_name": "guild_stats_command_name_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "guild_stats_guild_id_command_name_stat_date_key",
+          "constraint_type": "UNIQUE",
+          "column_name": "guild_id"
+        },
+        {
+          "constraint_name": "guild_stats_guild_id_command_name_stat_date_key",
+          "constraint_type": "UNIQUE",
+          "column_name": "stat_date"
+        },
+        {
+          "constraint_name": "guild_stats_guild_id_command_name_stat_date_key",
+          "constraint_type": "UNIQUE",
+          "column_name": "command_name"
+        },
+        {
+          "constraint_name": "guild_stats_guild_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "guild_stats_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "guild_stats_pkey",
+          "constraint_type": "PRIMARY KEY",
+          "column_name": "id"
+        },
+        {
+          "constraint_name": "guild_stats_stat_date_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "indexname": "guild_stats_guild_id_command_name_stat_date_key",
+          "indexdef": "CREATE UNIQUE INDEX guild_stats_guild_id_command_name_stat_date_key ON public.guild_stats USING btree (guild_id, command_name, stat_date)"
+        },
+        {
+          "indexname": "guild_stats_pkey",
+          "indexdef": "CREATE UNIQUE INDEX guild_stats_pkey ON public.guild_stats USING btree (id)"
+        },
+        {
+          "indexname": "idx_guild_stats_command_name",
+          "indexdef": "CREATE INDEX idx_guild_stats_command_name ON public.guild_stats USING btree (command_name)"
+        },
+        {
+          "indexname": "idx_guild_stats_composite",
+          "indexdef": "CREATE INDEX idx_guild_stats_composite ON public.guild_stats USING btree (guild_id, stat_date)"
+        },
+        {
+          "indexname": "idx_guild_stats_guild_id",
+          "indexdef": "CREATE INDEX idx_guild_stats_guild_id ON public.guild_stats USING btree (guild_id)"
+        },
+        {
+          "indexname": "idx_guild_stats_stat_date",
+          "indexdef": "CREATE INDEX idx_guild_stats_stat_date ON public.guild_stats USING btree (stat_date)"
+        }
+      ]
+    },
+    {
+      "name": "guilds",
+      "rowCount": 0,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "name",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "icon_url",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 500,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "member_count",
+          "data_type": "integer",
+          "is_nullable": "YES",
+          "column_default": "0",
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "constraints": [
+        {
+          "constraint_name": "guilds_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "guilds_name_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "guilds_pkey",
+          "constraint_type": "PRIMARY KEY",
+          "column_name": "id"
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "indexname": "guilds_pkey",
+          "indexdef": "CREATE UNIQUE INDEX guilds_pkey ON public.guilds USING btree (id)"
+        }
+      ]
+    },
+    {
+      "name": "health_monitoring",
+      "rowCount": 0,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('health_monitoring_id_seq'::regclass)",
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "check_name",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "is_healthy",
+          "data_type": "boolean",
+          "is_nullable": "YES",
+          "column_default": "true",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "message",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "details",
+          "data_type": "jsonb",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "severity",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 20,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "constraints": [
+        {
+          "constraint_name": "health_monitoring_check_name_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "health_monitoring_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "health_monitoring_pkey",
+          "constraint_type": "PRIMARY KEY",
+          "column_name": "id"
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "indexname": "health_monitoring_pkey",
+          "indexdef": "CREATE UNIQUE INDEX health_monitoring_pkey ON public.health_monitoring USING btree (id)"
+        },
+        {
+          "indexname": "idx_health_monitoring_check",
+          "indexdef": "CREATE INDEX idx_health_monitoring_check ON public.health_monitoring USING btree (check_name)"
+        },
+        {
+          "indexname": "idx_health_monitoring_created_at",
+          "indexdef": "CREATE INDEX idx_health_monitoring_created_at ON public.health_monitoring USING btree (created_at)"
+        }
+      ]
+    },
+    {
+      "name": "maintenance",
+      "rowCount": 2,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('maintenance_id_seq'::regclass)",
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "maintenance_type",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 20,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "target_name",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "enabled",
+          "data_type": "boolean",
+          "is_nullable": "YES",
+          "column_default": "false",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "message",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "whitelist",
+          "data_type": "jsonb",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "started_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "ended_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "constraints": [
+        {
+          "constraint_name": "maintenance_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "maintenance_maintenance_type_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "maintenance_pkey",
+          "constraint_type": "PRIMARY KEY",
+          "column_name": "id"
+        },
+        {
+          "constraint_name": "unique_maintenance_type_target",
+          "constraint_type": "UNIQUE",
+          "column_name": "maintenance_type"
+        },
+        {
+          "constraint_name": "unique_maintenance_type_target",
+          "constraint_type": "UNIQUE",
+          "column_name": "target_name"
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "indexname": "idx_maintenance_command",
+          "indexdef": "CREATE INDEX idx_maintenance_command ON public.maintenance USING btree (target_name) WHERE ((maintenance_type)::text = 'command'::text)"
+        },
+        {
+          "indexname": "idx_maintenance_global",
+          "indexdef": "CREATE UNIQUE INDEX idx_maintenance_global ON public.maintenance USING btree (maintenance_type) WHERE ((maintenance_type)::text = 'global'::text)"
+        },
+        {
+          "indexname": "maintenance_pkey",
+          "indexdef": "CREATE UNIQUE INDEX maintenance_pkey ON public.maintenance USING btree (id)"
+        },
+        {
+          "indexname": "unique_maintenance_type_target",
+          "indexdef": "CREATE UNIQUE INDEX unique_maintenance_type_target ON public.maintenance USING btree (maintenance_type, target_name)"
+        }
+      ]
+    },
+    {
+      "name": "maintenance_whitelist",
+      "rowCount": 1,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('maintenance_whitelist_id_seq'::regclass)",
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "user_id",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "reason",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "added_by",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "command_name",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "scope",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": "'global'::character varying",
+          "character_maximum_length": 20,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "expires_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "constraints": [
+        {
+          "constraint_name": "maintenance_whitelist_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "maintenance_whitelist_pkey",
+          "constraint_type": "PRIMARY KEY",
+          "column_name": "id"
+        },
+        {
+          "constraint_name": "maintenance_whitelist_user_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "indexname": "maintenance_whitelist_pkey",
+          "indexdef": "CREATE UNIQUE INDEX maintenance_whitelist_pkey ON public.maintenance_whitelist USING btree (id)"
+        }
+      ]
+    },
+    {
+      "name": "middleware_performance",
+      "rowCount": 141,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('middleware_performance_id_seq'::regclass)",
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "middleware_name",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "command_name",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 50,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "user_id",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "execution_time_ms",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "checks_performed",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "result",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 20,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "blocked_reason",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "constraints": [
+        {
+          "constraint_name": "middleware_performance_execution_time_ms_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "middleware_performance_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "middleware_performance_middleware_name_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "middleware_performance_pkey",
+          "constraint_type": "PRIMARY KEY",
+          "column_name": "id"
+        },
+        {
+          "constraint_name": "middleware_performance_result_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "indexname": "idx_middleware_perf_command",
+          "indexdef": "CREATE INDEX idx_middleware_perf_command ON public.middleware_performance USING btree (command_name)"
+        },
+        {
+          "indexname": "idx_middleware_perf_created_at",
+          "indexdef": "CREATE INDEX idx_middleware_perf_created_at ON public.middleware_performance USING btree (created_at)"
+        },
+        {
+          "indexname": "idx_middleware_perf_middleware",
+          "indexdef": "CREATE INDEX idx_middleware_perf_middleware ON public.middleware_performance USING btree (middleware_name)"
+        },
+        {
+          "indexname": "middleware_performance_pkey",
+          "indexdef": "CREATE UNIQUE INDEX middleware_performance_pkey ON public.middleware_performance USING btree (id)"
+        }
+      ]
+    },
+    {
+      "name": "moderation_actions",
+      "rowCount": 0,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('moderation_actions_id_seq'::regclass)",
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "guild_id",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "action_type",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 50,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "user_id",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "moderator_id",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "reason",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "duration_ms",
+          "data_type": "integer",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "expires_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "status",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": "'active'::character varying",
+          "character_maximum_length": 50,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "constraints": [
+        {
+          "constraint_name": "moderation_actions_action_type_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "moderation_actions_guild_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "moderation_actions_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "moderation_actions_pkey",
+          "constraint_type": "PRIMARY KEY",
+          "column_name": "id"
+        },
+        {
+          "constraint_name": "moderation_actions_user_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "indexname": "idx_moderation",
+          "indexdef": "CREATE INDEX idx_moderation ON public.moderation_actions USING btree (guild_id, user_id, action_type)"
+        },
+        {
+          "indexname": "moderation_actions_pkey",
+          "indexdef": "CREATE UNIQUE INDEX moderation_actions_pkey ON public.moderation_actions USING btree (id)"
+        }
+      ]
+    },
+    {
+      "name": "players",
+      "rowCount": 3,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('players_id_seq'::regclass)",
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "discord_id",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "username",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "faction",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "level",
+          "data_type": "integer",
+          "is_nullable": "YES",
+          "column_default": "0",
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "guild_id",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "url",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 500,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "player_status",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": "'online'::character varying",
+          "character_maximum_length": 50,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "last_check_time",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "days_inactive",
+          "data_type": "numeric",
+          "is_nullable": "YES",
+          "column_default": "0",
+          "character_maximum_length": null,
+          "numeric_precision": 5,
+          "numeric_scale": 2
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "constraints": [
+        {
+          "constraint_name": "players_discord_id_key",
+          "constraint_type": "UNIQUE",
+          "column_name": "discord_id"
+        },
+        {
+          "constraint_name": "players_discord_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "players_guild_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "players_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "players_pkey",
+          "constraint_type": "PRIMARY KEY",
+          "column_name": "id"
+        },
+        {
+          "constraint_name": "players_username_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "indexname": "players_discord_id_key",
+          "indexdef": "CREATE UNIQUE INDEX players_discord_id_key ON public.players USING btree (discord_id)"
+        },
+        {
+          "indexname": "players_pkey",
+          "indexdef": "CREATE UNIQUE INDEX players_pkey ON public.players USING btree (id)"
+        }
+      ]
+    },
+    {
+      "name": "saved_factions",
+      "rowCount": 1,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('saved_factions_id_seq'::regclass)",
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "faction_name",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "url",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 500,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "guild_id",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "saved_by",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "faction_power",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "faction_members",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "faction_claims",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "faction_allies_list",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "faction_emoji",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "faction_image_url",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 1000,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "faction_creation_date",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "constraints": [
+        {
+          "constraint_name": "saved_factions_faction_name_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "saved_factions_guild_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "saved_factions_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "saved_factions_pkey",
+          "constraint_type": "PRIMARY KEY",
+          "column_name": "id"
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "indexname": "saved_factions_pkey",
+          "indexdef": "CREATE UNIQUE INDEX saved_factions_pkey ON public.saved_factions USING btree (id)"
+        }
+      ]
+    },
+    {
+      "name": "saved_players",
+      "rowCount": 3,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('saved_players_id_seq'::regclass)",
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "discord_id",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "username",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "faction",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "url",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 500,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "guild_id",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "saved_by",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "constraints": [
+        {
+          "constraint_name": "saved_players_discord_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "saved_players_guild_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "saved_players_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "saved_players_pkey",
+          "constraint_type": "PRIMARY KEY",
+          "column_name": "id"
+        },
+        {
+          "constraint_name": "saved_players_username_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "indexname": "saved_players_pkey",
+          "indexdef": "CREATE UNIQUE INDEX saved_players_pkey ON public.saved_players USING btree (id)"
+        }
+      ]
+    },
+    {
+      "name": "ticket_messages",
+      "rowCount": 0,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('ticket_messages_id_seq'::regclass)",
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "ticket_id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "user_id",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "content",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "constraints": [
+        {
+          "constraint_name": "ticket_messages_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "ticket_messages_pkey",
+          "constraint_type": "PRIMARY KEY",
+          "column_name": "id"
+        },
+        {
+          "constraint_name": "ticket_messages_ticket_id_fkey",
+          "constraint_type": "FOREIGN KEY",
+          "column_name": "ticket_id"
+        },
+        {
+          "constraint_name": "ticket_messages_ticket_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "ticket_messages_user_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        }
+      ],
+      "foreignKeys": [
+        {
+          "constraint_name": "ticket_messages_ticket_id_fkey",
+          "column_name": "ticket_id",
+          "foreign_table_name": "tickets",
+          "foreign_column_name": "id"
+        }
+      ],
+      "indexes": [
+        {
+          "indexname": "ticket_messages_pkey",
+          "indexdef": "CREATE UNIQUE INDEX ticket_messages_pkey ON public.ticket_messages USING btree (id)"
+        }
+      ]
+    },
+    {
+      "name": "tickets",
+      "rowCount": 0,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('tickets_id_seq'::regclass)",
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "guild_id",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "channel_id",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "creator_id",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "status",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": "'open'::character varying",
+          "character_maximum_length": 50,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "subject",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "closed_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "closed_by",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "constraints": [
+        {
+          "constraint_name": "tickets_channel_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "tickets_creator_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "tickets_guild_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "tickets_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "tickets_pkey",
+          "constraint_type": "PRIMARY KEY",
+          "column_name": "id"
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "indexname": "idx_tickets",
+          "indexdef": "CREATE INDEX idx_tickets ON public.tickets USING btree (guild_id, status, creator_id)"
+        },
+        {
+          "indexname": "tickets_pkey",
+          "indexdef": "CREATE UNIQUE INDEX tickets_pkey ON public.tickets USING btree (id)"
+        }
+      ]
+    },
+    {
+      "name": "user_bans",
+      "rowCount": 0,
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('user_bans_id_seq'::regclass)",
+          "character_maximum_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0
+        },
+        {
+          "column_name": "user_id",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "reason",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "banned_by",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP",
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        },
+        {
+          "column_name": "expires_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "constraints": [
+        {
+          "constraint_name": "user_bans_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        },
+        {
+          "constraint_name": "user_bans_pkey",
+          "constraint_type": "PRIMARY KEY",
+          "column_name": "id"
+        },
+        {
+          "constraint_name": "user_bans_user_id_not_null",
+          "constraint_type": "CHECK",
+          "column_name": null
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "indexname": "user_bans_pkey",
+          "indexdef": "CREATE UNIQUE INDEX user_bans_pkey ON public.user_bans USING btree (id)"
+        }
+      ]
+    }
+  ]
+}

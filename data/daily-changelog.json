@@ -1,0 +1,46 @@
+{
+  "2026-04-12": [
+    "Refactoring interface administrateur",
+    "Système de gestion serveurs (blacklist)",
+    "Système de changelog quotidien avec historique",
+    "Backups automatiques journaliers",
+    "Retour automatique au panel après publication",
+    "Système de tracking automatique",
+    "Réinitialisation quotidienne à minuit",
+    "Optimisations et améliorations système"
+  ],
+  "2026-04-11": [
+    "fix: Panel admin appearance consistency",
+    "fix: Button styling"
+  ],
+  "2026-04-21": [
+    "Optimisations et améliorations système"
+  ],
+  "2026-04-24": [
+    "Optimisations et améliorations système"
+  ],
+  "2026-04-25": [
+    "Optimisations et améliorations système"
+  ],
+  "2026-04-26": [
+    "Optimisations et améliorations système"
+  ],
+  "2026-04-27": [
+    "Optimisations et améliorations système"
+  ],
+  "2026-04-30": [
+    "Optimisations et améliorations système"
+  ],
+  "2026-05-12": [
+    "Optimisations et améliorations système"
+  ],
+  "2026-07-20": [
+    "Optimisations et améliorations système"
+  ],
+  "2026-07-21": [
+    "Optimisations et améliorations système"
+  ],
+  "2026-07-22": [
+    "Optimisations et améliorations système"
+  ]
+}

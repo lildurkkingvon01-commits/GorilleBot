@@ -1,0 +1,482 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Guild {
+  id           String    @id @db.VarChar(255)
+  name         String    @db.VarChar(255)
+  icon_url     String?   @db.VarChar(500)
+  member_count Int?      @default(0)
+  bot_present  Boolean?  @default(true)
+  created_at   DateTime? @default(now()) @db.Timestamp(6)
+  updated_at   DateTime? @default(now()) @db.Timestamp(6)
+
+  @@index([bot_present], map: "idx_guilds_bot_present")
+  @@map("guilds")
+}
+
+model GuildConfig {
+  id                   Int       @id @default(autoincrement())
+  guild_id             String    @unique @db.VarChar(255)
+  inactivity_threshold Int?      @default(9)
+  check_frequency      Int?      @default(30)
+  reminder_delay       Int?      @default(24)
+  broadcast_channel_id String?   @db.VarChar(255)
+  created_at           DateTime? @default(now()) @db.Timestamp(6)
+  updated_at           DateTime? @default(now()) @db.Timestamp(6)
+  command_permissions  Json?     @default("{}")
+
+  @@map("guild_configs")
+}
+
+model GuildModule {
+  id          Int       @id @default(autoincrement())
+  guild_id    String    @db.VarChar(255)
+  module_name String    @db.VarChar(255)
+  enabled     Boolean?  @default(true)
+  config      String?
+  updated_at  DateTime? @default(now()) @db.Timestamp(6)
+  updated_by  String?   @db.VarChar(255)
+
+  @@unique([guild_id, module_name])
+  @@map("guild_modules")
+}
+
+model GuildStats {
+  id                      Int       @id @default(autoincrement())
+  guild_id                String    @db.VarChar(255)
+  command_name            String    @db.VarChar(100)
+  stat_date               DateTime  @db.Date
+  execution_count         Int?      @default(0)
+  total_execution_time_ms Int?      @default(0)
+  min_execution_ms        Int?
+  max_execution_ms        Int?
+  created_at              DateTime? @default(now()) @db.Timestamp(6)
+  updated_at              DateTime? @default(now()) @db.Timestamp(6)
+
+  @@unique([guild_id, command_name, stat_date])
+  @@index([command_name], map: "idx_guild_stats_command_name")
+  @@index([guild_id, stat_date], map: "idx_guild_stats_composite")
+  @@index([guild_id], map: "idx_guild_stats_guild_id")
+  @@index([stat_date], map: "idx_guild_stats_stat_date")
+  @@map("guild_stats")
+}
+
+model AuditLog {
+  id          Int       @id @default(autoincrement())
+  action      String    @db.VarChar(255)
+  user_id     String?   @db.VarChar(255)
+  guild_id    String?   @db.VarChar(255)
+  target_id   String?   @db.VarChar(255)
+  details     String?
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  target_name String?
+
+  @@map("audit_logs")
+}
+
+model CommandLog {
+  id                Int       @id @default(autoincrement())
+  command_name      String    @db.VarChar(50)
+  user_id           String    @db.VarChar(255)
+  username          String?   @db.VarChar(100)
+  guild_id          String?   @db.VarChar(255)
+  guild_name        String?   @db.VarChar(100)
+  arguments         String?
+  success           Boolean?  @default(true)
+  error_message     String?
+  execution_time_ms Int?
+  created_at        DateTime? @default(now()) @db.Timestamp(6)
+
+  @@index([command_name], map: "idx_command_logs_command_name")
+  @@index([created_at], map: "idx_command_logs_created_at")
+  @@index([guild_id], map: "idx_command_logs_guild_id")
+  @@index([user_id], map: "idx_command_logs_user_id")
+  @@map("command_logs")
+}
+
+model ErrorLog {
+  id            Int       @id @default(autoincrement())
+  error_type    String?   @db.VarChar(100)
+  error_message String?
+  error_stack   String?
+  command_name  String?   @db.VarChar(50)
+  user_id       String?   @db.VarChar(255)
+  guild_id      String?   @db.VarChar(255)
+  severity      String?   @db.VarChar(20)
+  resolved      Boolean?  @default(false)
+  created_at    DateTime? @default(now()) @db.Timestamp(6)
+
+  @@index([created_at], map: "idx_error_logs_created_at")
+  @@index([severity], map: "idx_error_logs_severity")
+  @@index([error_type], map: "idx_error_logs_type")
+  @@map("error_logs")
+}
+
+model SystemLog {
+  id          Int       @id @default(autoincrement())
+  guild_id    String    @db.VarChar(255)
+  event_type  String    @db.VarChar(50)
+  target_id   String?   @db.VarChar(255)
+  executor_id String?   @db.VarChar(255)
+  details     String?
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+
+  @@index([guild_id, created_at], map: "idx_discord_events_guild")
+  @@index([event_type, created_at], map: "idx_discord_events_type")
+  @@index([guild_id, event_type, created_at], map: "idx_events")
+  @@map("discord_events")
+}
+
+model MiddlewarePerformance {
+  id                Int       @id @default(autoincrement())
+  middleware_name   String    @db.VarChar(100)
+  command_name      String?   @db.VarChar(50)
+  user_id           String?   @db.VarChar(255)
+  execution_time_ms Int
+  checks_performed  String?
+  result            String    @db.VarChar(20)
+  blocked_reason    String?   @db.VarChar(255)
+  created_at        DateTime? @default(now()) @db.Timestamp(6)
+
+  @@index([command_name], map: "idx_middleware_perf_command")
+  @@index([created_at], map: "idx_middleware_perf_created_at")
+  @@index([middleware_name], map: "idx_middleware_perf_middleware")
+  @@map("middleware_performance")
+}
+
+model CommandMaintenance {
+  id           Int       @id @default(autoincrement())
+  command_name String    @unique @db.VarChar(255)
+  enabled      Boolean?  @default(false)
+  updated_by   String?   @db.VarChar(255)
+  updated_at   DateTime? @default(now()) @db.Timestamp(6)
+
+  @@map("command_maintenance")
+}
+
+model CommandStatus {
+  id           Int       @id @default(autoincrement())
+  guild_id     String    @db.VarChar(255)
+  command_name String    @db.VarChar(255)
+  enabled      Boolean?  @default(true)
+  updated_at   DateTime? @default(now()) @db.Timestamp(6)
+  updated_by   String?   @db.VarChar(255)
+
+  @@unique([guild_id, command_name])
+  @@map("command_status")
+}
+
+model CommandCooldown {
+  id            Int       @id @default(autoincrement())
+  guild_id      String    @db.VarChar(255)
+  command_name  String    @db.VarChar(255)
+  duration_ms   Int
+  cooldown_type String?   @default("user") @db.VarChar(50)
+  created_at    DateTime? @default(now()) @db.Timestamp(6)
+  updated_by    String?   @db.VarChar(255)
+
+  @@unique([guild_id, command_name, cooldown_type])
+  @@index([guild_id, command_name], map: "idx_cooldowns")
+  @@map("command_cooldowns")
+}
+
+model CommandPermission {
+  id              Int       @id @default(autoincrement())
+  guild_id        String    @db.VarChar(255)
+  command_name    String    @db.VarChar(255)
+  role_id         String?   @db.VarChar(255)
+  user_id         String?   @db.VarChar(255)
+  permission_type String    @db.VarChar(50)
+  allowed         Boolean?  @default(true)
+  created_at      DateTime? @default(now()) @db.Timestamp(6)
+  updated_by      String?   @db.VarChar(255)
+
+  @@unique([guild_id, command_name, role_id, user_id, permission_type])
+  @@index([guild_id, command_name], map: "idx_cmd_perms")
+  @@map("command_permissions")
+}
+
+model ModerationAction {
+  id           Int       @id @default(autoincrement())
+  guild_id     String    @db.VarChar(255)
+  action_type  String    @db.VarChar(50)
+  user_id      String    @db.VarChar(255)
+  moderator_id String?   @db.VarChar(255)
+  reason       String?
+  duration_ms  Int?
+  expires_at   DateTime? @db.Timestamp(6)
+  status       String?   @default("active") @db.VarChar(50)
+  created_at   DateTime? @default(now()) @db.Timestamp(6)
+
+  @@index([guild_id, user_id, action_type], map: "idx_moderation")
+  @@map("moderation_actions")
+}
+
+model UserBan {
+  id         Int       @id @default(autoincrement())
+  user_id    String    @db.VarChar(255)
+  reason     String?
+  banned_by  String?   @db.VarChar(255)
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  expires_at DateTime? @db.Timestamp(6)
+
+  @@map("user_bans")
+}
+
+model BannedGuild {
+  id           Int       @id @default(autoincrement())
+  guild_id     String    @unique @db.VarChar(255)
+  guild_name   String?   @db.VarChar(100)
+  reason       String?
+  banned_by    String?   @db.VarChar(255)
+  banned_at    DateTime? @default(now()) @db.Timestamp(6)
+  expires_at   DateTime? @db.Timestamp(6)
+  is_permanent Boolean?  @default(true)
+  active       Boolean?  @default(true)
+
+  @@index([active], map: "idx_banned_guilds_active")
+  @@index([guild_id], map: "idx_banned_guilds_guild_id")
+  @@map("banned_guilds")
+}
+
+model GuildAction {
+  id           Int       @id @default(autoincrement())
+  guild_id     String    @db.VarChar(255)
+  action_type  String    @db.VarChar(50)
+  status       String    @default("PENDING") @db.VarChar(20)
+  reason       String?
+  created_at   DateTime? @default(now()) @db.Timestamp(6)
+  executed_at  DateTime? @db.Timestamp(6)
+
+  @@index([status], map: "idx_guild_actions_status")
+  @@index([guild_id], map: "idx_guild_actions_guild_id")
+  @@map("guild_actions")
+}
+
+model Maintenance {
+  id               Int       @id @default(autoincrement())
+  maintenance_type String    @db.VarChar(20)
+  target_name      String?   @db.VarChar(100)
+  enabled          Boolean?  @default(false)
+  message          String?
+  whitelist        Json?
+  started_at       DateTime? @db.Timestamp(6)
+  ended_at         DateTime? @db.Timestamp(6)
+
+  @@unique([maintenance_type, target_name], map: "unique_maintenance_type_target")
+  @@map("maintenance")
+}
+
+model MaintenanceWhitelist {
+  id           Int       @id @default(autoincrement())
+  user_id      String    @db.VarChar(255)
+  reason       String?
+  added_by     String?   @db.VarChar(255)
+  created_at   DateTime? @default(now()) @db.Timestamp(6)
+  command_name String?   @db.VarChar(100)
+  scope        String?   @default("global") @db.VarChar(20)
+  expires_at   DateTime? @db.Timestamp(6)
+
+  @@map("maintenance_whitelist")
+}
+
+model BackupMetadata {
+  id            Int       @id @default(autoincrement())
+  backup_name   String    @unique @db.VarChar(100)
+  backup_type   String?   @db.VarChar(20)
+  created_by    String?   @db.VarChar(255)
+  created_at    DateTime? @default(now()) @db.Timestamp(6)
+  file_path     String?
+  file_size_mb  Float?
+  description   String?
+  restored_from Boolean?  @default(false)
+  restored_at   DateTime? @db.Timestamp(6)
+
+  @@index([created_at], map: "idx_backups_created_at")
+  @@map("backups_metadata")
+}
+
+model FeatureFlag {
+  id          Int       @id @default(autoincrement())
+  flag_name   String    @unique @db.VarChar(100)
+  enabled     Boolean?  @default(false)
+  description String?
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  updated_at  DateTime? @default(now()) @db.Timestamp(6)
+
+  @@index([flag_name], map: "idx_feature_flags_name")
+  @@map("feature_flags")
+}
+
+model GlobalConfig {
+  id           Int       @id @default(autoincrement())
+  config_key   String    @unique @db.VarChar(255)
+  config_value String?
+  created_at   DateTime? @default(now()) @db.Timestamp(6)
+  updated_at   DateTime? @default(now()) @db.Timestamp(6)
+
+  @@map("global_config")
+}
+
+model HealthMonitoring {
+  id         Int       @id @default(autoincrement())
+  check_name String    @db.VarChar(100)
+  is_healthy Boolean?  @default(true)
+  message    String?
+  details    Json?
+  severity   String?   @db.VarChar(20)
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+
+  @@index([check_name], map: "idx_health_monitoring_check")
+  @@index([created_at], map: "idx_health_monitoring_created_at")
+  @@map("health_monitoring")
+}
+
+model AntiSpamBlock {
+  id            Int       @id @default(autoincrement())
+  user_id       String    @db.VarChar(255)
+  guild_id      String?   @db.VarChar(255)
+  reason        String?   @db.VarChar(100)
+  blocked_until DateTime? @db.Timestamp(6)
+  created_at    DateTime? @default(now()) @db.Timestamp(6)
+
+  @@index([blocked_until], map: "idx_anti_spam_blocked_until")
+  @@index([user_id], map: "idx_anti_spam_user_id")
+  @@map("anti_spam_blocks")
+}
+
+model CooldownTracking {
+  id           Int      @id @default(autoincrement())
+  guild_id     String   @db.VarChar(255)
+  command_name String   @db.VarChar(255)
+  user_id      String   @db.VarChar(255)
+  expires_at   DateTime @db.Timestamp(6)
+
+  @@index([guild_id, command_name, user_id], map: "idx_tracking")
+  @@map("cooldown_tracking")
+}
+
+model AutomodConfig {
+  id            Int       @id @default(autoincrement())
+  guild_id      String    @db.VarChar(255)
+  setting_key   String    @db.VarChar(255)
+  setting_value String?
+  created_at    DateTime? @default(now()) @db.Timestamp(6)
+  updated_at    DateTime? @default(now()) @db.Timestamp(6)
+
+  @@unique([guild_id, setting_key])
+  @@map("automod_config")
+}
+
+model AutomodViolation {
+  id              Int       @id @default(autoincrement())
+  guild_id        String    @db.VarChar(255)
+  channel_id      String    @db.VarChar(255)
+  user_id         String    @db.VarChar(255)
+  violation_type  String    @db.VarChar(50)
+  message_content String?
+  action_taken    String?   @db.VarChar(255)
+  created_at      DateTime? @default(now()) @db.Timestamp(6)
+
+  @@index([guild_id, user_id, violation_type], map: "idx_violations")
+  @@map("automod_violations")
+}
+
+model Announcement {
+  id           Int       @id @default(autoincrement())
+  guild_id     String    @db.VarChar(255)
+  channel_id   String    @db.VarChar(255)
+  title        String    @db.VarChar(255)
+  content      String
+  scheduled_at DateTime? @db.Timestamp(6)
+  sent_at      DateTime? @db.Timestamp(6)
+  status       String?   @default("pending") @db.VarChar(50)
+  created_by   String?   @db.VarChar(255)
+  created_at   DateTime? @default(now()) @db.Timestamp(6)
+
+  @@index([guild_id, status], map: "idx_announcements")
+  @@map("announcements")
+}
+
+model Ticket {
+  id              Int             @id @default(autoincrement())
+  guild_id        String          @db.VarChar(255)
+  channel_id      String          @db.VarChar(255)
+  creator_id      String          @db.VarChar(255)
+  status          String?         @default("open") @db.VarChar(50)
+  subject         String?
+  created_at      DateTime?       @default(now()) @db.Timestamp(6)
+  closed_at       DateTime?       @db.Timestamp(6)
+  closed_by       String?         @db.VarChar(255)
+  ticket_messages TicketMessage[]
+
+  @@index([guild_id, status, creator_id], map: "idx_tickets")
+  @@map("tickets")
+}
+
+model TicketMessage {
+  id         Int       @id @default(autoincrement())
+  ticket_id  Int
+  user_id    String    @db.VarChar(255)
+  content    String?
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  tickets    Ticket    @relation(fields: [ticket_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("ticket_messages")
+}
+
+model Player {
+  id              Int       @id @default(autoincrement())
+  discord_id      String    @unique @db.VarChar(255)
+  username        String    @db.VarChar(255)
+  faction         String?   @db.VarChar(100)
+  level           Int?      @default(0)
+  guild_id        String    @db.VarChar(255)
+  created_at      DateTime? @default(now()) @db.Timestamp(6)
+  updated_at      DateTime? @default(now()) @db.Timestamp(6)
+  url             String?   @db.VarChar(500)
+  player_status   String?   @default("online") @db.VarChar(50)
+  last_check_time DateTime? @db.Timestamp(6)
+  days_inactive   Decimal?  @default(0) @db.Decimal(5, 2)
+
+  @@map("players")
+}
+
+model SavedPlayer {
+  id         Int       @id @default(autoincrement())
+  discord_id String    @db.VarChar(255)
+  username   String    @db.VarChar(255)
+  faction    String?   @db.VarChar(100)
+  url        String?   @db.VarChar(500)
+  guild_id   String    @db.VarChar(255)
+  saved_by   String?   @db.VarChar(255)
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  updated_at DateTime? @default(now()) @db.Timestamp(6)
+
+  @@map("saved_players")
+}
+
+model SavedFaction {
+  id                    Int       @id @default(autoincrement())
+  faction_name          String    @db.VarChar(255)
+  url                   String?   @db.VarChar(500)
+  guild_id              String    @db.VarChar(255)
+  saved_by              String?   @db.VarChar(255)
+  created_at            DateTime? @default(now()) @db.Timestamp(6)
+  updated_at            DateTime? @default(now()) @db.Timestamp(6)
+  faction_power         String?   @db.VarChar(255)
+  faction_members       String?
+  faction_claims        String?   @db.VarChar(255)
+  faction_allies_list   String?
+  faction_emoji         String?   @db.VarChar(255)
+  faction_image_url     String?   @db.VarChar(1000)
+  faction_creation_date String?   @db.VarChar(255)
+
+  @@map("saved_factions")
+}

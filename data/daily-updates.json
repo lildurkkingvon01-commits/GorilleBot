@@ -1,0 +1,173 @@
+{
+  "updates": [
+    {
+      "date": "2026-04-11",
+      "changes": [
+        {
+          "time": "15:02:50",
+          "type": "Permission Update",
+          "description": "Rôle **🔑・Owner** ajouté à `/addplayer`",
+          "emoji": "👥"
+        },
+        {
+          "time": "15:05:01",
+          "type": "Permission Update",
+          "description": "Rôle **🔑・Owner** ajouté à `/addplayer`",
+          "emoji": "👥"
+        },
+        {
+          "time": "15:07:02",
+          "type": "Permission Update",
+          "description": "Rôle **🔑・Owner** ajouté à `/addplayer`",
+          "emoji": "👥"
+        },
+        {
+          "time": "15:16:08",
+          "type": "Permission Update",
+          "description": "Rôle **🔑・Owner** ajouté à `/addplayer`",
+          "emoji": "👥"
+        },
+        {
+          "time": "15:19:38",
+          "type": "Permission Update",
+          "description": "Rôle **🔑・Owner** ajouté à `/addplayer`",
+          "emoji": "👥"
+        },
+        {
+          "time": "15:20:45",
+          "type": "Permission Update",
+          "description": "Utilisateur ajouté à `/addplayer`",
+          "emoji": "👤"
+        },
+        {
+          "time": "15:28:04",
+          "type": "Permission Update",
+          "description": "Rôle **🔑・Owner** ajouté à `/addplayer`",
+          "emoji": "👥"
+        },
+        {
+          "time": "15:33:23",
+          "type": "Permission Update",
+          "description": "Utilisateur <@492627367114702849> ajouté à `/addplayer`",
+          "emoji": "👤"
+        },
+        {
+          "time": "15:33:52",
+          "type": "Permission Update",
+          "description": "Utilisateur <@492627367114702849> ajouté à `/listplayers`",
+          "emoji": "👤"
+        },
+        {
+          "time": "15:36:49",
+          "type": "Permission Update",
+          "description": "Utilisateur <@492627367114702849> ajouté à `/removeplayer`",
+          "emoji": "👤"
+        },
+        {
+          "time": "15:39:36",
+          "type": "Permission Update",
+          "description": "Utilisateur <@492627367114702849> ajouté à `/removeplayer`",
+          "emoji": "👤"
+        },
+        {
+          "time": "15:44:20",
+          "type": "Permission Update",
+          "description": "Utilisateur <@492627367114702849> ajouté à `/listplayers`",
+          "emoji": "👤"
+        },
+        {
+          "time": "15:54:13",
+          "type": "Permission Update",
+          "description": "Utilisateur ajouté à `/addplayer`",
+          "emoji": "👤"
+        },
+        {
+          "time": "15:55:29",
+          "type": "Permission Update",
+          "description": "Utilisateur ajouté à `/listplayers`",
+          "emoji": "👤"
+        },
+        {
+          "time": "15:55:29",
+          "type": "Permission Update",
+          "description": "Utilisateur ajouté à `/listplayers`",
+          "emoji": "👤"
+        },
+        {
+          "time": "15:59:38",
+          "type": "Permission Update",
+          "description": "Rôle **⚜️・Admin** ajouté à `/config`",
+          "emoji": "👥"
+        },
+        {
+          "time": "16:04:26",
+          "type": "Permission Update",
+          "description": "Utilisateur ajouté à `/addplayer`",
+          "emoji": "👤"
+        },
+        {
+          "time": "16:09:29",
+          "type": "Permission Update",
+          "description": "Rôle **⚜️・Admin** ajouté à `/listplayers`",
+          "emoji": "👥"
+        },
+        {
+          "time": "16:17:55",
+          "type": "Permission Update",
+          "description": "Utilisateur ajouté à `/config`",
+          "emoji": "👤"
+        },
+        {
+          "time": "16:20:22",
+          "type": "Permission Update",
+          "description": "Utilisateur ajouté à `/listplayers`",
+          "emoji": "👤"
+        },
+        {
+          "time": "16:21:18",
+          "type": "Broadcast Sent",
+          "description": "📢 \"gtrezger\" envoyé à 0 serveurs",
+          "emoji": "📢"
+        },
+        {
+          "time": "16:24:57",
+          "type": "Broadcast Sent",
+          "description": "📢 \"dzfergf\" envoyé à 1 serveurs",
+          "emoji": "📢"
+        },
+        {
+          "time": "16:28:55",
+          "type": "Broadcast Sent",
+          "description": "📢 \"zefzerf\" envoyé à 1 serveurs",
+          "emoji": "📢"
+        },
+        {
+          "time": "16:34:20",
+          "type": "Broadcast Sent",
+          "description": "📢 \"Testt\" envoyé à 1 serveurs",
+          "emoji": "📢"
+        },
+        {
+          "time": "16:37:43",
+          "type": "Broadcast Sent",
+          "description": "📢 \"testtt\" envoyé à 1 serveurs",
+          "emoji": "📢"
+        },
+        {
+          "time": "16:40:34",
+          "type": "Broadcast Sent",
+          "description": "📢 \"fzdfzef\" envoyé à 2 serveurs",
+          "emoji": "📢"
+        },
+        {
+          "time": "17:07:36",
+          "type": "Version Update",
+          "description": "1.0.0 → Version 1.0.4",
+          "emoji": "🔢"
+        }
+      ],
+      "sent": false
+    }
+  ],
+  "lastSent": "2026-04-11"
+}

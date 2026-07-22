@@ -1,0 +1,27 @@
+{
+  "name": "@redguard/shared",
+  "version": "1.0.0",
+  "description": "Shared types, validators and utilities",
+  "private": true,
+  "main": "dist/index.js",
+  "type": "module",
+  "exports": {
+    "./types": "./dist/types/index.js",
+    "./validators": "./dist/validators/index.js",
+    "./permissions": "./dist/permissions/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint src/",
+    "format": "prettier --write src/"
+  },
+  "dependencies": {
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.16.5",
+    "typescript": "^5.8.3",
+    "eslint": "^9.32.0",
+    "prettier": "^3.7.3"
+  }
+}
