@@ -58,7 +58,8 @@ import GuildActionService from './services/guildActionService.js';
 import OrphanLogService from './services/orphanLogService.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: path.join(__dirname, '../.env.local') });
+// Load environment from process.env; local .env will be loaded automatically by dotenv if present
+dotenv.config();
 
 const client = new Client({
   intents: [

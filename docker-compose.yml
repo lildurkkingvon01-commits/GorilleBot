@@ -5,15 +5,17 @@ services:
     image: postgres:15-alpine
     container_name: gorille_bot_postgres
     environment:
-      POSTGRES_DB: gorille_bot
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      # Use environment variables or Railway secrets instead of hardcoded defaults
+      POSTGRES_DB: ${POSTGRES_DB:-gorille_bot}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      # Healthcheck will use POSTGRES_USER if set
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 10s
       timeout: 5s
       retries: 5
