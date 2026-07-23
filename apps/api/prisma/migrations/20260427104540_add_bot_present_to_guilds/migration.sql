@@ -116,21 +116,6 @@ CREATE TABLE "discord_events" (
 );
 
 -- CreateTable
-CREATE TABLE "middleware_performance" (
-    "id" SERIAL NOT NULL,
-    "middleware_name" VARCHAR(100) NOT NULL,
-    "command_name" VARCHAR(50),
-    "user_id" VARCHAR(255),
-    "execution_time_ms" INTEGER NOT NULL,
-    "checks_performed" TEXT,
-    "result" VARCHAR(20) NOT NULL,
-    "blocked_reason" VARCHAR(255),
-    "created_at" TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT "middleware_performance_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "command_status" (
     "id" SERIAL NOT NULL,
     "guild_id" VARCHAR(255) NOT NULL,
@@ -480,15 +465,7 @@ CREATE INDEX "idx_discord_events_type" ON "discord_events"("event_type", "create
 CREATE INDEX "idx_events" ON "discord_events"("guild_id", "event_type", "created_at");
 
 -- CreateIndex
-CREATE INDEX "idx_middleware_perf_command" ON "middleware_performance"("command_name");
 
--- CreateIndex
-CREATE INDEX "idx_middleware_perf_created_at" ON "middleware_performance"("created_at");
-
--- CreateIndex
-CREATE INDEX "idx_middleware_perf_middleware" ON "middleware_performance"("middleware_name");
-
--- CreateIndex
 CREATE UNIQUE INDEX "command_status_guild_id_command_name_key" ON "command_status"("guild_id", "command_name");
 
 -- CreateIndex

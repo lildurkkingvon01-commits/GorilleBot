@@ -70,16 +70,8 @@ export default {
    */
   async checkDatabasePerformance() {
     try {
-      const result = await getDb().oneOrNone(
-        `SELECT 
-          ROUND(AVG(execution_time_ms)::numeric, 2) as avg_ms,
-          MAX(execution_time_ms) as max_ms,
-          COUNT(*) as executions
-        FROM middleware_performance
-        WHERE created_at > NOW() - INTERVAL '30 minutes'`
-      );
-      
-      if (!result || !result.avg_ms) return;
+      // Database performance checks do not include legacy middleware performance metrics.
+      return;
       
       const avgMs = parseFloat(result.avg_ms);
       

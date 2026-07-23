@@ -4,7 +4,6 @@
  */
 
 import CommandLogService from '../src/services/commandLogService.js';
-import MiddlewarePerformanceService from '../src/services/middlewarePerformanceService.js';
 import db from '../src/utils/postgres.js';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -24,9 +23,6 @@ async function stressTest() {
   console.log('This simulates normal bot usage\n');
 
   try {
-    // Clear previous test data
-    await db.none("DELETE FROM middleware_performance WHERE created_at > NOW() - INTERVAL '5 minutes'");
-    
     const startTime = performance.now();
     let successCount = 0;
     let errorCount = 0;
@@ -45,18 +41,6 @@ async function stressTest() {
         const promise = (async () => {
           try {
             // Simulate middleware performance logging
-            await MiddlewarePerformanceService.recordPerformance({
-              commandName: 'test_' + (commandNum % 5),
-              userId: 'user_' + (commandNum % 20),
-              executionTimeMs: Math.random() * 500 + 50,
-              checksPerformed: { 
-                ban_check: 2 + Math.random() * 3,
-                maintenance_check: 1 + Math.random() * 2,
-                spam_check: Math.random() * 5
-              },
-              result: Math.random() > 0.9 ? 'blocked' : 'passed'
-            });
-
             // Also log command
             await CommandLogService.logCommand({
               commandName: 'test_' + (commandNum % 5),
@@ -112,8 +96,6 @@ async function stressTest() {
       WHERE created_at > NOW() - INTERVAL '5 minutes'
     `);
 
-    const perfStats = await MiddlewarePerformanceService.getStats(0.1); // Last 6 minutes
-
     // Print results
     console.log('\n📊 STRESS TEST RESULTS\n');
     console.log('┌─────────────────────────────────────────┐');
@@ -153,17 +135,6 @@ async function stressTest() {
       console.log('   Avg DB time > 300ms - Monitor query performance');
       console.log('   Consider: indices, table sizes, query optimization');
     }
-
-    console.log('\n┌─────────────────────────────────────────┐');
-    console.log('│ MIDDLEWARE STATS (last 10min)           │');
-    console.log('├─────────────────────────────────────────┤');
-    console.log(`│ Executions:      ${perfStats.totalExecutions.toString().padStart(28)} │`);
-    console.log(`│ Passed:          ${perfStats.passedCount.toString().padStart(28)} │`);
-    console.log(`│ Blocked:         ${perfStats.blockedCount.toString().padStart(28)} │`);
-    console.log(`│ Errors:          ${perfStats.errorCount.toString().padStart(28)} │`);
-    console.log(`│ Success Rate:    ${perfStats.successRate.toString().padStart(26)}% │`);
-    console.log(`│ Avg Time:        ${perfStats.avgExecutionTime.toString().padStart(26)}ms │`);
-    console.log('└─────────────────────────────────────────┘');
 
     // Performance verdict
     console.log('\n🏆 PERFORMANCE VERDICT\n');

@@ -7,7 +7,6 @@ import CommandLogService from '../services/commandLogService.js';
 import ErrorHandler from '../services/errorHandler.js';
 import AntiSpamService from '../services/antiSpamService.js';
 import AuditLogService from '../services/auditLogService.js';
-import MiddlewarePerformanceService from '../services/middlewarePerformanceService.js';
 import BypassService from '../services/bypassService.js';
 import { globalCache } from '../services/cacheService.js';
 import fs from 'fs';
@@ -81,15 +80,6 @@ class GlobalCommandMiddleware {
 
       // ✅ Toutes les vérifications passées
       const executionTime = performance.now() - startTime;
-
-      MiddlewarePerformanceService.recordPerformance({
-        commandName,
-        userId: interaction.user.id,
-        executionTimeMs: executionTime,
-        checksPerformed: { ban_check: 1, maintenance_check: 1, spam_check: 1 },
-        result: 'passed'
-      }).catch(err => console.error('[Middleware] Perf logging error:', err));
-
       return { proceed: true, reason: null };
     } catch (error) {
       console.error('[GlobalMiddleware] Error in middleware:', error);
@@ -97,13 +87,7 @@ class GlobalCommandMiddleware {
       // Log performance even on error
       {
         const executionTime = performance.now() - startTime;
-        MiddlewarePerformanceService.recordPerformance({
-          commandName,
-          userId: interaction.user.id,
-          executionTimeMs: executionTime,
-          result: 'error',
-          blockedReason: error.message
-        }).catch(err => console.error('[Middleware] Perf error logging:', err));
+        console.error('[Middleware] Error occurred after', executionTime, 'ms');
       }
       
       // Log l'erreur

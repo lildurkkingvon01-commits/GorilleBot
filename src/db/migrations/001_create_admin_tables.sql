@@ -129,27 +129,9 @@ CREATE INDEX IF NOT EXISTS idx_error_logs_type ON error_logs(error_type);
 CREATE INDEX IF NOT EXISTS idx_error_logs_severity ON error_logs(severity);
 CREATE INDEX IF NOT EXISTS idx_error_logs_created_at ON error_logs(created_at);
 
--- 9. MIDDLEWARE PERFORMANCE - Suivi des performances du middleware
-CREATE TABLE IF NOT EXISTS middleware_performance (
-  id SERIAL PRIMARY KEY,
-  middleware_name VARCHAR(100) NOT NULL,
-  command_name VARCHAR(50),
-  user_id VARCHAR(255),
-  execution_time_ms INTEGER NOT NULL,
-  checks_performed TEXT, -- JSON: {ban_check: 2, maintenance_check: 1, spam_check: 3}
-  result VARCHAR(20) NOT NULL, -- 'passed', 'blocked', 'error'
-  blocked_reason VARCHAR(255),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_middleware_perf_middleware ON middleware_performance(middleware_name);
-CREATE INDEX IF NOT EXISTS idx_middleware_perf_command ON middleware_performance(command_name);
-CREATE INDEX IF NOT EXISTS idx_middleware_perf_created_at ON middleware_performance(created_at);
-
--- 10. LOG RETENTION POLICY
+-- 9. LOG RETENTION POLICY
 -- Auto-cleanup: command_logs older than 30 days
 -- Auto-cleanup: error_logs older than 60 days
--- Auto-cleanup: middleware_performance older than 30 days
 -- (Implemented via cron job in Node.js - see logPurgeService.js)
 
 -- ============================================

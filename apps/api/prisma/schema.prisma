@@ -133,23 +133,6 @@ model SystemLog {
   @@map("discord_events")
 }
 
-model MiddlewarePerformance {
-  id                Int       @id @default(autoincrement())
-  middleware_name   String    @db.VarChar(100)
-  command_name      String?   @db.VarChar(50)
-  user_id           String?   @db.VarChar(255)
-  execution_time_ms Int
-  checks_performed  String?
-  result            String    @db.VarChar(20)
-  blocked_reason    String?   @db.VarChar(255)
-  created_at        DateTime? @default(now()) @db.Timestamp(6)
-
-  @@index([command_name], map: "idx_middleware_perf_command")
-  @@index([created_at], map: "idx_middleware_perf_created_at")
-  @@index([middleware_name], map: "idx_middleware_perf_middleware")
-  @@map("middleware_performance")
-}
-
 model CommandStatus {
   id           Int       @id @default(autoincrement())
   guild_id     String    @db.VarChar(255)

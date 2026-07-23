@@ -49,7 +49,6 @@ import GlobalCommandMiddleware from './middleware/globalMiddleware.js';
 import GuildSyncService from './services/guildSyncService.js';
 
 // Services PHASE 2+
-import MiddlewarePerformanceService from './services/middlewarePerformanceService.js';
 import LogPurgeService from './services/logPurgeService.js';
 import AlertingService from './services/alertingService.js';
 import OrphanLogService from './services/orphanLogService.js';

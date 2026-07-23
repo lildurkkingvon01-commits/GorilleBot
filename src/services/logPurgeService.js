@@ -11,8 +11,7 @@ class LogPurgeService {
   // Configuration (en jours)
   static RETENTION_POLICY = {
     command_logs: 30,      // Garder 30 jours
-    error_logs: 60,        // Garder 60 jours
-    middleware_performance: 30  // Garder 30 jours
+    error_logs: 60         // Garder 60 jours
   };
 
   /**
@@ -56,16 +55,7 @@ class LogPurgeService {
       );
       results.error_logs = errResult.rowCount;
 
-      // Purge middleware_performance
-      const perfResult = await db.result(
-        `DELETE FROM middleware_performance 
-         WHERE created_at < NOW() - INTERVAL '${this.RETENTION_POLICY.middleware_performance} day'`
-      );
-      results.middleware_performance = perfResult.rowCount;
-
-      const summary = `Deleted ${results.command_logs} command logs, ` +
-        `${results.error_logs} error logs, ` +
-        `${results.middleware_performance} perf records`;
+      const summary = `Deleted ${results.command_logs} command logs and ${results.error_logs} error logs`;
 
       return {
         success: true,
@@ -102,14 +92,6 @@ class LogPurgeService {
         return { success: true, deleted: result.rowCount };
       }
 
-      if (tableName === 'middleware_performance') {
-        const result = await db.result(
-          `DELETE FROM middleware_performance 
-           WHERE created_at < NOW() - INTERVAL '${this.RETENTION_POLICY.middleware_performance} day'`
-        );
-        return { success: true, deleted: result.rowCount };
-      }
-
       // Purge all
       return await this.purgeOldLogs();
     } catch (error) {
@@ -127,25 +109,21 @@ class LogPurgeService {
         `SELECT
           (SELECT COUNT(*) FROM command_logs) as command_logs_count,
           (SELECT COUNT(*) FROM error_logs) as error_logs_count,
-          (SELECT COUNT(*) FROM middleware_performance) as middleware_perf_count,
           (SELECT COALESCE(SUM(pg_total_relation_size(schemaname||'.'||tablename)), 0) 
            FROM pg_tables 
-           WHERE tablename IN ('command_logs', 'error_logs', 'middleware_performance')
+           WHERE tablename IN ('command_logs', 'error_logs')
           ) as total_size_bytes,
           (SELECT MIN(created_at) FROM command_logs) as oldest_command_log,
-          (SELECT MIN(created_at) FROM error_logs) as oldest_error_log,
-          (SELECT MIN(created_at) FROM middleware_performance) as oldest_perf_log`
+          (SELECT MIN(created_at) FROM error_logs) as oldest_error_log`
       );
 
       return {
         command_logs: parseInt(stats.command_logs_count),
         error_logs: parseInt(stats.error_logs_count),
-        middleware_performance: parseInt(stats.middleware_perf_count),
         totalSizeBytes: parseInt(stats.total_size_bytes),
         totalSizeMB: Math.round(parseInt(stats.total_size_bytes) / (1024 * 1024)),
         oldestCommandLog: stats.oldest_command_log,
         oldestErrorLog: stats.oldest_error_log,
-        oldestPerfLog: stats.oldest_perf_log,
         retentionPolicy: this.RETENTION_POLICY
       };
     } catch (error) {
@@ -160,7 +138,6 @@ class LogPurgeService {
   static setRetentionPolicy(policy) {
     if (policy.command_logs) this.RETENTION_POLICY.command_logs = policy.command_logs;
     if (policy.error_logs) this.RETENTION_POLICY.error_logs = policy.error_logs;
-    if (policy.middleware_performance) this.RETENTION_POLICY.middleware_performance = policy.middleware_performance;
     
     console.log('[LogPurgeService] Retention policy updated:', this.RETENTION_POLICY);
   }
