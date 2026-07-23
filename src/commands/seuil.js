@@ -77,8 +77,10 @@ export const data = new SlashCommandBuilder()
 
 export async function execute(interaction) {
   // Authorization handled centrally by GlobalCommandMiddleware
+  console.log(`[CMD][seuil] execute called by ${interaction.user?.id} in guild ${interaction.guildId}`);
 
   const subcommand = interaction.options.getSubcommand();
+  console.log(`[CMD][seuil] subcommand=${subcommand}`);
 
   if (subcommand === 'set') {
     try {
@@ -145,6 +147,7 @@ export async function execute(interaction) {
   } else if (subcommand === 'check') {
     try {
       const guildId = interaction.guildId;
+      console.log(`[CMD][seuil][check] invoked by ${interaction.user?.id} for guild ${guildId}`);
       const fileConfig = getFileGuildConfig(guildId);
       const dbConfig = await getDbGuildConfig(guildId);
       const config = {
@@ -156,11 +159,13 @@ export async function execute(interaction) {
       const alertChannelId = config?.alertChannelId;
 
       if (!alertChannelId) {
+        console.log(`[CMD][seuil][check] abort - no alertChannelId configured for guild ${guildId}`);
         return await interaction.editReply({
           content: '❌・Aucun channel d\'alerte n\'est configuré pour ce serveur. Utilisez `/config` pour définir un channel d\'alerte, puis réessayez.'
         });
       }
 
+      console.log(`[CMD][seuil][check] starting background check for guild ${guildId}`);
       await interaction.editReply({
         content: '⏳ Vérification démarrée en tâche de fond. Je reviens vers vous dès que possible.'
       });
@@ -169,6 +174,7 @@ export async function execute(interaction) {
       runManualInactivityCheck(guildId)
         .then(async (result) => {
           try {
+            console.log(`[CMD][seuil][check] background check finished for guild ${guildId}`, result);
             const seuilHours = config?.inactivityThreshold || 9;
             const seuilDisplay = (() => {
               if (seuilHours >= 24) {
@@ -189,17 +195,18 @@ export async function execute(interaction) {
               content: alertMessage,
               ephemeral: true
             });
+            console.log(`[CMD][seuil][check] followUp sent to user ${interaction.user?.id}`);
           } catch (followUpError) {
-            console.error('Erreur suivi seuil check:', followUpError);
+            console.error('[CMD][seuil][check] Erreur suivi seuil check:', followUpError);
           }
         })
         .catch((backgroundError) => {
-          console.error('Erreur asynchrone seuil check:', backgroundError);
+          console.error('[CMD][seuil][check] Erreur asynchrone seuil check:', backgroundError);
         });
 
       return;
     } catch (error) {
-      console.error('Erreur seuil check:', error);
+      console.error('[CMD][seuil][check] Erreur seuil check:', error);
       return await interaction.editReply({
         content: '❌・Erreur lors de la vérification du seuil. Veuillez réessayer plus tard.'
       });

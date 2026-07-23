@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ChannelType } from 'discord.js';
 import { setGuildConfig, setGuildDMAlert } from '../utils/guildConfig.js';
-import { getPlayersByGuild, getCheckFrequency } from '../utils/database.js';
+import { getPlayersByGuild, getCheckFrequency, updateGuildConfig } from '../utils/database.js';
 import { updateGuildMonitorMessage } from '../cron/checkInactivity.js';
 import { createSuccessPreset, addSection, createField } from '../utils/embedPresets.js';
 import GlobalCommandMiddleware from '../middleware/globalMiddleware.js';
@@ -115,7 +115,7 @@ export async function execute(interaction) {
     });
 
     try {
-      await database.updateGuildConfig(interaction.guildId, {
+      await updateGuildConfig(interaction.guildId, {
         alert_channel_id: alertChannelId,
         monitor_channel_id: statusChannel ? statusChannel.id : undefined
       });

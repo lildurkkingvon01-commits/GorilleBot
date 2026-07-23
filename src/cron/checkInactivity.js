@@ -5,6 +5,20 @@ import { scrapePactifyProfile, formatDays } from '../utils/scraper.js';
 import { formatInactivityTime, createProgressBar, getColorByStatus, getStatusEmoji } from '../utils/embedFormatter.js';
 import { EmbedBuilder, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 
+// Helper to merge file + DB guild config
+async function getGuildConfig(guildId) {
+  const fileConfig = getFileGuildConfig(guildId) || {};
+  const dbConfig = await getDbGuildConfig(guildId) || {};
+  return {
+    ...fileConfig,
+    ...dbConfig,
+    monitorChannelId: dbConfig.monitor_channel_id || fileConfig.monitorChannelId,
+    monitorMessageId: dbConfig.monitor_message_id || fileConfig.monitorMessageId,
+    alertChannelId: dbConfig.alert_channel_id || fileConfig.alertChannelId,
+    inactivityThreshold: dbConfig.inactivity_threshold || fileConfig.inactivityThreshold
+  };
+}
+
 let client;
 let cronJobsEnabled = false; // CRITICAL: Disable CRON during startup phase
 const guildLastCheckTime = {}; // Track last check time per guild
@@ -327,13 +341,42 @@ export async function updateGuildMonitorMessage(guildId, frequency, nextCheckIn,
       .setTimestamp();
 
     let message = null;
+    console.log(`[MONITOR][${guildId}] monitorMessageId from DB/file:`, { monitorMessageId });
     if (guildConfig.monitorMessageId) {
-      message = await channel.messages.fetch(guildConfig.monitorMessageId).catch(() => null);
+      try {
+        message = await channel.messages.fetch(guildConfig.monitorMessageId);
+        console.log(`[MONITOR][${guildId}] fetch success for message ${guildConfig.monitorMessageId}`);
+      } catch (fetchErr) {
+        // Log the discord error details for diagnosis
+        console.error(`[MONITOR][${guildId}] fetch failed for message ${guildConfig.monitorMessageId}`, { message: fetchErr.message, code: fetchErr.code, httpStatus: fetchErr?.status, name: fetchErr.name });
+
+        // Determine whether we should create a new message:
+        // - If message truly doesn't exist (Unknown Message / 10008 / 404) => allow creating new message
+        // - If Missing Access / 403 / 50013 => do NOT create a new message (bot can't access channel)
+        const errMsg = String(fetchErr?.message || '').toLowerCase();
+        const isUnknown = errMsg.includes('unknown message') || fetchErr?.code === 10008 || fetchErr?.status === 404;
+        const isMissingAccess = errMsg.includes('missing access') || fetchErr?.code === 50013 || fetchErr?.status === 403;
+
+        if (isMissingAccess) {
+          console.warn(`[MONITOR][${guildId}] cannot fetch monitor message due to Missing Access; will NOT attempt to create a new message`);
+          return;
+        }
+
+        if (!isUnknown) {
+          // Unexpected error — avoid creating a new message to prevent spam, but keep monitoring
+          console.warn(`[MONITOR][${guildId}] fetch failed with unexpected error, skipping create to avoid duplicate messages`);
+          return;
+        }
+
+        // If we reach here, treat as Unknown Message and allow creating a new one by leaving message === null
+        message = null;
+      }
     }
 
     if (message) {
       if (shouldUpdateMonitorMessage(guildId, newState)) {
         try {
+          console.log(`[MONITOR][${guildId}] editing message ${message.id}`);
           await message.edit({ embeds: [embed] });
           monitorMessageStates[guildId] = newState;
           console.log(`[MONITOR][${guildId}] message edited successfully`, {
@@ -341,7 +384,7 @@ export async function updateGuildMonitorMessage(guildId, frequency, nextCheckIn,
             newLabel: newState.nextCheckLabel
           });
         } catch (editError) {
-          console.error(`[MONITOR][${guildId}] message.edit failed`, editError.stack || editError);
+          console.error(`[MONITOR][${guildId}] message.edit failed`, { error: editError.stack || editError, messageId: message.id });
           console.log(`[MONITOR][${guildId}] state cache preserved until next successful edit`);
         }
       } else {
@@ -352,10 +395,12 @@ export async function updateGuildMonitorMessage(guildId, frequency, nextCheckIn,
       }
     } else {
       try {
+        console.log(`[MONITOR][${guildId}] monitor message missing — creating new message via channel.send()`);
         message = await channel.send({ embeds: [embed] });
+        console.log(`[MONITOR][${guildId}] channel.send success, message id: ${message.id}`);
         await updateGuildConfig(guildId, { monitor_channel_id: monitorChannelId, monitor_message_id: message.id, alert_channel_id: guildConfig.alertChannelId || undefined });
         monitorMessageStates[guildId] = newState;
-        console.log(`[MONITOR][${guildId}] monitor message created`, { monitorMessageId: message.id });
+        console.log(`[MONITOR][${guildId}] monitor message created and saved to DB`, { monitorMessageId: message.id });
       } catch (createError) {
         console.error(`[MONITOR][${guildId}] failed to create monitor message`, createError.stack || createError);
       }
