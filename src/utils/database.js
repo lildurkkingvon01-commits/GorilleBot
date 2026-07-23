@@ -111,7 +111,15 @@ export async function deleteSavedFaction(id) { try { return await db.result('DEL
 
 export async function getGuildConfig(guildId) { try { let c = await db.oneOrNone('SELECT * FROM guild_configs WHERE guild_id = $1', [guildId]); return c || await db.one('INSERT INTO guild_configs (guild_id) VALUES ($1) RETURNING *', [guildId]); } catch (e) { return {}; } }
 export async function updateGuildConfig(guildId, updates) { try { const f = [], v = []; let p = 1; if (updates.inactivity_threshold !== undefined) { f.push(`inactivity_threshold = $${p++}`); v.push(updates.inactivity_threshold); } if (updates.check_frequency !== undefined) { f.push(`check_frequency = $${p++}`); v.push(updates.check_frequency); } if (updates.broadcast_channel_id !== undefined) { f.push(`broadcast_channel_id = $${p++}`); v.push(updates.broadcast_channel_id); } if (updates.alert_channel_id !== undefined) { f.push(`alert_channel_id = $${p++}`); v.push(updates.alert_channel_id); } if (updates.monitor_channel_id !== undefined) { f.push(`monitor_channel_id = $${p++}`); v.push(updates.monitor_channel_id); } if (updates.monitor_message_id !== undefined) { f.push(`monitor_message_id = $${p++}`); v.push(updates.monitor_message_id); } if (updates.command_permissions !== undefined) { f.push(`command_permissions = $${p++}`); v.push(updates.command_permissions); } if (f.length === 0) return null; v.push(guildId); const query = `UPDATE guild_configs SET ${f.join(", ")} WHERE guild_id = $${p} RETURNING *`; return await db.one(query, v); } catch (e) { console.error('[DB ERROR] updateGuildConfig:', e); return null; } }
-export async function getConfiguredMonitorGuildIdsFromDb() { try { const rows = await db.any('SELECT guild_id FROM guild_configs WHERE monitor_channel_id IS NOT NULL AND monitor_channel_id <> ''' ); return rows.map((row) => row.guild_id); } catch (e) { console.error('[DB ERROR] getConfiguredMonitorGuildIdsFromDb failed', { message: e.message, code: e.code }); return []; } }
+export async function getConfiguredMonitorGuildIdsFromDb() {
+  try {
+    const rows = await db.any("SELECT guild_id FROM guild_configs WHERE monitor_channel_id IS NOT NULL AND monitor_channel_id <> ''");
+    return rows.map((row) => row.guild_id);
+  } catch (e) {
+    console.error('[DB ERROR] getConfiguredMonitorGuildIdsFromDb failed', { message: e.message, code: e.code });
+    return [];
+  }
+}
 
 export async function getSavedPlayerByName(playerName) { try { const r = await db.oneOrNone('SELECT * FROM saved_players WHERE LOWER(username) = LOWER($1)', [playerName]); return r ? {...r, playerName: r.username, playerUrl: r.url} : null; } catch (e) { return null; } }
 export async function getAllSavedPlayersGlobal() { try { const r = await db.any('SELECT * FROM saved_players ORDER BY created_at DESC'); return r.map(p => ({...p, playerName: p.username, playerUrl: p.url})); } catch (e) { return []; } }
