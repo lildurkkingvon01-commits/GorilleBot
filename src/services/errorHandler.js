@@ -4,7 +4,6 @@
  */
 
 import db from '../utils/postgres.js';
-import FeatureFlagService from './featureFlagService.js';
 
 class ErrorHandler {
   /**
@@ -20,10 +19,6 @@ class ErrorHandler {
     severity = 'medium'
   }) {
     try {
-      // Vérifier si logging est activé
-      const loggingEnabled = await FeatureFlagService.isEnabled('error_logging_enabled');
-      if (!loggingEnabled) return;
-
       await db.none(
         `INSERT INTO error_logs (error_type, error_message, error_stack, command_name, user_id, guild_id, severity)
          VALUES ($1, $2, $3, $4, $5, $6, $7)`,

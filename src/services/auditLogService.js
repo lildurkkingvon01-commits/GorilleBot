@@ -4,7 +4,6 @@
  */
 
 import db from '../utils/postgres.js';
-import FeatureFlagService from './featureFlagService.js';
 
 class AuditLogService {
   /**
@@ -22,10 +21,6 @@ class AuditLogService {
     errorMessage = null
   }) {
     try {
-      // Vérifier si logging est activé
-      const auditEnabled = await FeatureFlagService.isEnabled('audit_logs_enabled');
-      if (!auditEnabled) return;
-
       // Nettoyer les données sensibles du details
       const cleanDetails = this.sanitizeDetails(details);
 

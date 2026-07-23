@@ -49,40 +49,8 @@ async function testMaintenanceSystem() {
       return false;
     }
 
-    // 4️⃣ Mettre une commande en maintenance
-    console.log('\n4️⃣ Setting command under maintenance...');
-    const cmdMaintResult = await MaintenanceService.setCommandMaintenance(
-      'addplayer',
-      true,
-      'Commande addplayer en maintenance',
-      testAdminId,
-      testAdminUsername
-    );
-    
-    if (cmdMaintResult.success) {
-      console.log('✅ Command maintenance set');
-    } else {
-      console.log('❌ Failed to set command maintenance');
-      return false;
-    }
-
-    // 5️⃣ Vérifier que la commande est en maintenance
-    console.log('\n5️⃣ Checking if command is under maintenance...');
-    const isCmdUnderMaint = await MaintenanceService.isCommandUnderMaintenance('addplayer');
-    if (isCmdUnderMaint) {
-      console.log('✅ Command is under maintenance (as expected)');
-    } else {
-      console.log('❌ Command is NOT under maintenance (unexpected)');
-      return false;
-    }
-
-    // 6️⃣ Obtenir le message de maintenance
-    console.log('\n6️⃣ Getting maintenance message...');
-    const msg = await MaintenanceService.getCommandMaintenanceMessage('addplayer');
-    console.log(`✅ Maintenance message: "${msg}"`);
-
-    // 7️⃣ Désactiver la maintenance globale
-    console.log('\n7️⃣ Disabling global maintenance...');
+    // 4️⃣ Désactiver la maintenance globale
+    console.log('\n4️⃣ Disabling global maintenance...');
     const disableResult = await MaintenanceService.setGlobalMaintenance(
       false,
       null,

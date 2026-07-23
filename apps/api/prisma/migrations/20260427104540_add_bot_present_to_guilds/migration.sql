@@ -131,17 +131,6 @@ CREATE TABLE "middleware_performance" (
 );
 
 -- CreateTable
-CREATE TABLE "command_maintenance" (
-    "id" SERIAL NOT NULL,
-    "command_name" VARCHAR(255) NOT NULL,
-    "enabled" BOOLEAN DEFAULT false,
-    "updated_by" VARCHAR(255),
-    "updated_at" TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT "command_maintenance_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "command_status" (
     "id" SERIAL NOT NULL,
     "guild_id" VARCHAR(255) NOT NULL,
@@ -266,18 +255,6 @@ CREATE TABLE "backups_metadata" (
     "restored_at" TIMESTAMP(6),
 
     CONSTRAINT "backups_metadata_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "feature_flags" (
-    "id" SERIAL NOT NULL,
-    "flag_name" VARCHAR(100) NOT NULL,
-    "enabled" BOOLEAN DEFAULT false,
-    "description" TEXT,
-    "created_at" TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT "feature_flags_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -512,9 +489,6 @@ CREATE INDEX "idx_middleware_perf_created_at" ON "middleware_performance"("creat
 CREATE INDEX "idx_middleware_perf_middleware" ON "middleware_performance"("middleware_name");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "command_maintenance_command_name_key" ON "command_maintenance"("command_name");
-
--- CreateIndex
 CREATE UNIQUE INDEX "command_status_guild_id_command_name_key" ON "command_status"("guild_id", "command_name");
 
 -- CreateIndex
@@ -550,11 +524,6 @@ CREATE UNIQUE INDEX "backups_metadata_backup_name_key" ON "backups_metadata"("ba
 -- CreateIndex
 CREATE INDEX "idx_backups_created_at" ON "backups_metadata"("created_at");
 
--- CreateIndex
-CREATE UNIQUE INDEX "feature_flags_flag_name_key" ON "feature_flags"("flag_name");
-
--- CreateIndex
-CREATE INDEX "idx_feature_flags_name" ON "feature_flags"("flag_name");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "global_config_config_key_key" ON "global_config"("config_key");

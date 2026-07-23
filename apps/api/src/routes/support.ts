@@ -1,12 +1,11 @@
 /**
- * Support Routes (Maintenance, Backups, Flags, Settings)
+ * Support Routes (Maintenance, Backups, Settings)
  */
 
 import { FastifyInstance } from 'fastify';
 import {
   maintenanceController,
   backupsController,
-  flagsController,
   settingsController,
 } from '@/controllers/supportController';
 
@@ -29,13 +28,6 @@ export async function backupsRoutes(fastify: FastifyInstance) {
   fastify.post('/api/backups', backupsController.createBackup);
   fastify.post('/api/backups/:backupId/restore', backupsController.restoreBackup);
   fastify.delete('/api/backups/:backupId', backupsController.deleteBackup);
-}
-
-// ==================== Flags Routes ====================
-
-export async function flagsRoutes(fastify: FastifyInstance) {
-  fastify.get('/api/flags', flagsController.getFlags);
-  fastify.patch('/api/flags/:flagKey', flagsController.updateFlag);
 }
 
 // ==================== Settings Routes ====================

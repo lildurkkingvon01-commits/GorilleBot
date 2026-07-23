@@ -5,7 +5,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import {
   maintenanceService,
-  flagsService,
   backupsService,
   settingsService,
 } from '@/services/maintenanceService';
@@ -226,54 +225,6 @@ export const backupsController = {
       });
     } catch (error) {
       throw errorResponses.internalError(error);
-    }
-  },
-};
-
-// ==================== Flags Controller ====================
-
-export const flagsController = {
-  async getFlags(request: FastifyRequest, reply: FastifyReply) {
-    try {
-      const query = request.query as any;
-      const { page, limit } = parsePagination(query.page, query.limit);
-
-      const result = await flagsService.getFlags(page, limit);
-
-      return reply.send({
-        data: result.data,
-        meta: {
-          pagination: {
-            page: result.page,
-            limit: result.limit,
-            total: result.total,
-            pages: result.pages,
-          },
-          timestamp: new Date().toISOString(),
-        },
-      } as ApiResponse<any>);
-    } catch (error) {
-      throw errorResponses.internalError(error);
-    }
-  },
-
-  async updateFlag(request: FastifyRequest, reply: FastifyReply) {
-    try {
-      const { flagKey } = request.params as any;
-      const { enabled } = request.body as any;
-
-      if (typeof enabled !== 'boolean') {
-        throw errorResponses.invalidParams('enabled must be a boolean');
-      }
-
-      const result = await flagsService.updateFlag(flagKey, enabled);
-
-      return reply.send({
-        data: result,
-        meta: { timestamp: new Date().toISOString() },
-      });
-    } catch (error) {
-      throw error;
     }
   },
 };

@@ -37,12 +37,10 @@ import { logToChannelAsync, createLogEmbed } from './utils/adminLogs.js';
 
 // Services PHASE 1
 import { globalCache } from './services/cacheService.js';
-import FeatureFlagService from './services/featureFlagService.js';
 import ErrorHandler from './services/errorHandler.js';
 import CommandLogService from './services/commandLogService.js';
 import AuditLogService from './services/auditLogService.js';
 import MaintenanceService from './services/maintenanceService.js';
-import CommandMaintenanceService from './services/commandMaintenanceService.js';
 import MaintenanceWhitelistService from './services/maintenanceWhitelistService.js';
 import AntiSpamService from './services/antiSpamService.js';
 import StatsService from './services/statsService.js';
@@ -579,11 +577,7 @@ client.once('clientReady', async () => {
   console.log('\n🚀 Initializing PHASE 2+ Services...\n');
 
   try {
-    // 1. Initialize feature flags
-    console.log('[Init] Initializing feature flags...');
-    await FeatureFlagService.initializeDefaultFlags();
-    
-    // 2. Initialize log purge schedule
+    // 1. Initialize log purge schedule
     console.log('[Init] Initializing log purge schedule...');
     LogPurgeService.initializePurgeSchedule();
     
@@ -1077,12 +1071,7 @@ client.on('interactionCreate', async (interaction) => {
       // If middleware fails, old checks take priority
       
       // 1️⃣ CHECK IF MIDDLEWARE IS ENABLED
-      let middlewareEnabled = true;
-      try {
-        middlewareEnabled = await FeatureFlagService.isEnabled('middleware_enabled');
-      } catch (flagError) {
-        console.error('[PHASE2] Error checking middleware flag, assuming enabled:', flagError.message);
-      }
+      const middlewareEnabled = true;
 
       // 1️⃣ RUN NEW MIDDLEWARE (Safe mode - all wrapped in try-catch)
       let middlewareResult = null;
@@ -1134,27 +1123,6 @@ client.on('interactionCreate', async (interaction) => {
         }
       } catch (error) {
         console.error('[MAINTENANCE CHECK] Erreur:', error);
-      }
-
-      // PHASE 3C: Per-Command Maintenance Check
-      try {
-        const isInMaintenance = await CommandMaintenanceService.isCommandInMaintenance(commandName);
-        if (isInMaintenance) {
-          // Check global whitelist OR command-specific whitelist
-          const isWhitelisted = await MaintenanceWhitelistService.isWhitelisted(interaction.user.id, commandName);
-          
-          if (!isWhitelisted) {
-            console.log(`[CMD MAINTENANCE] Command ${commandName} is in maintenance and user ${interaction.user.id} is not whitelisted`);
-            return interaction.reply({
-              content: `⚠️ **La commande \`/${commandName}\` est actuellement en maintenance.**\n\nElle sera disponible dans peu de temps.`,
-              flags: 64
-            });
-          }
-          
-          console.log(`[WHITELIST] User ${interaction.user.id} bypassed maintenance for command ${commandName}`);
-        }
-      } catch (error) {
-        console.error('[CMD MAINTENANCE CHECK] Erreur:', error);
       }
 
       // OLD CHECK 3: Broadcast channel verification

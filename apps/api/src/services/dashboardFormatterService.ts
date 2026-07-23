@@ -19,8 +19,6 @@ const ACTION_LABELS: Record<string, string> = {
   'guild_unbanned': 'Serveur débanni',
   
   // Maintenance/Commands
-  'COMMAND_MAINTENANCE_ENABLE': 'Maintenance activée',
-  'COMMAND_MAINTENANCE_DISABLE': 'Maintenance désactivée',
   'COMMAND_ENABLE': 'Commande activée',
   'COMMAND_DISABLE': 'Commande désactivée',
   
@@ -42,8 +40,6 @@ const ACTION_TONES: Record<string, 'success' | 'danger' | 'warning' | 'neutral'>
   'USER_UNBANNED': 'success',         // green
   
   // Maintenance
-  'COMMAND_MAINTENANCE_ENABLE': 'warning',   // orange
-  'COMMAND_MAINTENANCE_DISABLE': 'warning',  // orange
   'COMMAND_ENABLE': 'success',               // green
   'COMMAND_DISABLE': 'danger',               // red
   
@@ -214,18 +210,6 @@ export function formatAuditLogForUI(auditLog: any, usernameMap?: Map<string, str
     title = guildName;
     subtitle = guildId ? `ID: ${guildId}` : '';
     details = '';
-  }
-
-  // ===== COMMAND MAINTENANCE ACTIONS =====
-  else if (action.includes('COMMAND_MAINTENANCE') || action.includes('COMMAND_') && action.includes('ABLE')) {
-    const commandName = auditLog.details?.trim();
-    const normalized = commandName ? (commandName.startsWith('/') ? commandName : `/${commandName}`) : 'inconnue';
-    
-    title = normalized;
-    subtitle = '';
-    // Extract action: "Maintenance activée" -> "activée"
-    const actionType = actionLabel.replace(/maintenance |commande /gi, '').toLowerCase();
-    details = `Action: ${actionType}`;
   }
 
   // ===== USER BAN ACTIONS =====

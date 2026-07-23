@@ -4,7 +4,6 @@
  */
 
 import db from '../utils/postgres.js';
-import FeatureFlagService from './featureFlagService.js';
 import { globalCache } from './cacheService.js';
 
 class AntiSpamService {

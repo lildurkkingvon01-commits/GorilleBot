@@ -3,13 +3,11 @@
  * Middleware centralisé pour toutes les commandes
  */
 
-import MaintenanceService from '../services/maintenanceService.js';
 import CommandLogService from '../services/commandLogService.js';
 import ErrorHandler from '../services/errorHandler.js';
 import AntiSpamService from '../services/antiSpamService.js';
 import AuditLogService from '../services/auditLogService.js';
 import MiddlewarePerformanceService from '../services/middlewarePerformanceService.js';
-import FeatureFlagService from '../services/featureFlagService.js';
 import BypassService from '../services/bypassService.js';
 import { globalCache } from '../services/cacheService.js';
 import fs from 'fs';
@@ -68,20 +66,7 @@ class GlobalCommandMiddleware {
         return { proceed: false, reason: 'Not bypassed' };
       }
 
-      // 1️⃣ Vérifier la maintenance
-      const isUnderMaintenance = await MaintenanceService.isCommandUnderMaintenance(commandName);
-      if (isUnderMaintenance) {
-        const maintenanceMsg = await MaintenanceService.getCommandMaintenanceMessage(commandName);
-        // Owner/admins and bypassed users bypass maintenance
-        if (!this.OWNER_IDS.includes(interaction.user.id) && !this.ADMIN_IDS.includes(interaction.user.id) && !isBypassedUser) {
-          await interaction.reply({
-            content: `🔧 ${maintenanceMsg}`,
-            ephemeral: true
-          });
-          await this.logCommandExecution(interaction, commandName, startTime, false, 'Under maintenance');
-          return { proceed: false, reason: 'Under maintenance' };
-        }
-      }
+      // 1️⃣ Vérifier la maintenance globale n'est pas gérée par ce middleware
 
       // 2️⃣ Vérifier le rate limit (anti-spam)
       const rateLimit = await AntiSpamService.checkRateLimit(interaction.user.id, commandName);
@@ -96,42 +81,29 @@ class GlobalCommandMiddleware {
 
       // ✅ Toutes les vérifications passées
       const executionTime = performance.now() - startTime;
-      
-      // Log performance (if enabled)
-      try {
-        const perfTrackingEnabled = await FeatureFlagService.isEnabled('performance_tracking_enabled');
-        if (perfTrackingEnabled) {
-          MiddlewarePerformanceService.recordPerformance({
-            commandName,
-            userId: interaction.user.id,
-            executionTimeMs: executionTime,
-            checksPerformed: { ban_check: 1, maintenance_check: 1, spam_check: 1 },
-            result: 'passed'
-          }).catch(err => console.error('[Middleware] Perf logging error:', err));
-        }
-      } catch (err) {
-        console.error('[Middleware] Error checking perf flag:', err);
-      }
+
+      MiddlewarePerformanceService.recordPerformance({
+        commandName,
+        userId: interaction.user.id,
+        executionTimeMs: executionTime,
+        checksPerformed: { ban_check: 1, maintenance_check: 1, spam_check: 1 },
+        result: 'passed'
+      }).catch(err => console.error('[Middleware] Perf logging error:', err));
 
       return { proceed: true, reason: null };
     } catch (error) {
       console.error('[GlobalMiddleware] Error in middleware:', error);
       
       // Log performance even on error
-      try {
-        const perfTrackingEnabled = await FeatureFlagService.isEnabled('performance_tracking_enabled');
-        if (perfTrackingEnabled) {
-          const executionTime = performance.now() - startTime;
-          MiddlewarePerformanceService.recordPerformance({
-            commandName,
-            userId: interaction.user.id,
-            executionTimeMs: executionTime,
-            result: 'error',
-            blockedReason: error.message
-          }).catch(err => console.error('[Middleware] Perf error logging:', err));
-        }
-      } catch (err) {
-        console.error('[Middleware] Error logging perf on error:', err);
+      {
+        const executionTime = performance.now() - startTime;
+        MiddlewarePerformanceService.recordPerformance({
+          commandName,
+          userId: interaction.user.id,
+          executionTimeMs: executionTime,
+          result: 'error',
+          blockedReason: error.message
+        }).catch(err => console.error('[Middleware] Perf error logging:', err));
       }
       
       // Log l'erreur

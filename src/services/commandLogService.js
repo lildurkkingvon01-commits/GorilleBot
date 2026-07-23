@@ -4,7 +4,6 @@
  */
 
 import db from '../utils/postgres.js';
-import FeatureFlagService from './featureFlagService.js';
 import { globalCache } from './cacheService.js';
 
 class CommandLogService {
@@ -23,10 +22,6 @@ class CommandLogService {
     executionTimeMs = 0
   }) {
     try {
-      // Vérifier si logging est activé
-      const loggingEnabled = await FeatureFlagService.isEnabled('command_logs_enabled');
-      if (!loggingEnabled) return;
-
       // Insérer dans DB (non-bloquant en async)
       db.none(
         `INSERT INTO command_logs 

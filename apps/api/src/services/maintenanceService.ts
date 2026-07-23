@@ -2,7 +2,7 @@
  * Maintenance Service
  */
 
-import { maintenanceRepository, whitelistRepository, flagRepository } from '@/repositories/other';
+import { maintenanceRepository, whitelistRepository } from '@/repositories/other';
 
 export const maintenanceService = {
   async getMaintenance(page: number, limit: number) {
@@ -67,37 +67,6 @@ export const maintenanceService = {
 
   async isWhitelisted(userId: string) {
     return whitelistRepository.isWhitelisted(userId);
-  },
-};
-
-/**
- * Flags Service
- */
-
-export const flagsService = {
-  async getFlags(page: number, limit: number) {
-    return flagRepository.findMany(page, limit);
-  },
-
-  async getFlagByName(name: string) {
-    return flagRepository.findByName(name);
-  },
-
-  async updateFlag(flagName: string, enabled: boolean) {
-    return {
-      success: true,
-      flag: flagName,
-      enabled,
-      updatedAt: new Date(),
-    };
-  },
-
-  async getAllFlags() {
-    return flagRepository.getAll();
-  },
-
-  async isFlagEnabled(name: string) {
-    return flagRepository.isEnabled(name);
   },
 };
 

@@ -180,46 +180,6 @@ async function runPhase2Tests() {
     }
 
     // ========================================
-    // TEST 6: Per-Command Maintenance (Scenario 6)
-    // ========================================
-    console.log('6️⃣ TEST 6: Per-Command Maintenance');
-    try {
-      const testCmd = 'addplayer';
-      
-      // Set command maintenance
-      await MaintenanceService.setCommandMaintenance(
-        testCmd,
-        true,
-        'Command under maintenance',
-        '111222333',
-        'Admin'
-      );
-
-      // Check if under maintenance
-      const isUnderMaint = await MaintenanceService.isCommandUnderMaintenance(testCmd);
-      
-      if (isUnderMaint) {
-        console.log('   ✅ Command maintenance properly set\n');
-        results.push({ test: 'Per-Command Maintenance', status: 'PASS' });
-      } else {
-        console.log('   ❌ Command maintenance check failed\n');
-        results.push({ test: 'Per-Command Maintenance', status: 'FAIL' });
-      }
-
-      // Disable for next tests
-      await MaintenanceService.setCommandMaintenance(
-        testCmd,
-        false,
-        null,
-        '111222333',
-        'Admin'
-      );
-    } catch (error) {
-      console.error('   ❌ Error:', error.message, '\n');
-      results.push({ test: 'Per-Command Maintenance', status: 'ERROR' });
-    }
-
-    // ========================================
     // TEST 7: Spam/Rate Limit (Scenario 7)
     // ========================================
     console.log('7️⃣ TEST 7: Spam Rate Limit');

@@ -5,7 +5,7 @@
 -- Purpose: Create missing tables for admin system
 -- Reusing existing tables: user_bans, audit_logs, command_status
 -- Creating new tables: command_logs, banned_guilds, maintenance, anti_spam_blocks, 
---                     backups_metadata, feature_flags, health_monitoring, error_logs
+--                     backups_metadata, health_monitoring, error_logs
 
 -- 1. COMMAND LOGS - Log toutes les commandes exécutées
 CREATE TABLE IF NOT EXISTS command_logs (
@@ -95,29 +95,7 @@ CREATE TABLE IF NOT EXISTS backups_metadata (
 
 CREATE INDEX IF NOT EXISTS idx_backups_created_at ON backups_metadata(created_at);
 
--- 6. FEATURE FLAGS - Feature flags pour contrôle dynamique
-CREATE TABLE IF NOT EXISTS feature_flags (
-  id SERIAL PRIMARY KEY,
-  flag_name VARCHAR(100) NOT NULL UNIQUE,
-  enabled BOOLEAN DEFAULT FALSE,
-  description TEXT,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_feature_flags_name ON feature_flags(flag_name);
-
--- Insérer les feature flags par défaut
-INSERT INTO feature_flags (flag_name, enabled, description) VALUES
-('command_logs_enabled', TRUE, 'Activer le logging de toutes les commandes'),
-('audit_logs_enabled', TRUE, 'Activer le logging des actions admin'),
-('error_logging_enabled', TRUE, 'Activer le logging centralisé des erreurs'),
-('anti_spam_enabled', TRUE, 'Activer le système anti-spam'),
-('health_monitoring_enabled', TRUE, 'Activer la surveillance de la santé du bot'),
-('feature_flags_enabled', TRUE, 'Activer le système de feature flags'),
-('cache_enabled', TRUE, 'Activer le cache global'),
-('global_maintenance', FALSE, 'Mettre le bot en maintenance globale')
-ON CONFLICT (flag_name) DO NOTHING;
+-- FEATURE FLAGS support removed
 
 -- 7. HEALTH MONITORING - Monitoring santé du bot
 CREATE TABLE IF NOT EXISTS health_monitoring (
@@ -183,9 +161,8 @@ CREATE INDEX IF NOT EXISTS idx_middleware_perf_created_at ON middleware_performa
 -- 3. maintenance - État de maintenance
 -- 4. anti_spam_blocks - Blocage anti-spam
 -- 5. backups_metadata - Métadonnées backups
--- 6. feature_flags - Feature flags dynamiques
--- 7. health_monitoring - Monitoring de santé
--- 8. error_logs - Logs centralisés des erreurs
+-- 6. health_monitoring - Monitoring de santé
+-- 7. error_logs - Logs centralisés des erreurs
 -- 
 -- Réutilisé existing tables:
 -- - user_bans (para utilisateurs bannis)

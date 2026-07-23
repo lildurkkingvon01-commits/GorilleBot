@@ -42,8 +42,6 @@ export enum Permission {
   VIEW_BOT_STATS = 'view_bot_stats',
   RESTART_BOT = 'restart_bot',
   
-  // Feature Flags
-  MANAGE_FLAGS = 'manage_flags',
 }
 
 export enum Role {
@@ -102,8 +100,6 @@ export const RolePermissions: Record<Role, Permission[]> = {
     Permission.MANAGE_BOT_SETTINGS,
     Permission.VIEW_BOT_STATS,
     
-    // Feature Flags
-    Permission.MANAGE_FLAGS,
   ],
   
   [Role.MODERATOR]: [
@@ -201,8 +197,6 @@ export const AuditLogPermissionMap: Record<string, Permission[]> = {
   USER_UNBANNED: [Permission.UNBAN_USER],
   GUILD_UNBANNED: [Permission.UNBAN_GUILD],
   BOT_EXPELLED: [Permission.VIEW_AUDIT_LOGS],
-  COMMAND_MAINTENANCE_ENABLE: [Permission.TOGGLE_MAINTENANCE],
-  COMMAND_MAINTENANCE_DISABLE: [Permission.TOGGLE_MAINTENANCE],
   MAINTENANCE_WHITELIST_ADD: [Permission.MANAGE_WHITELIST],
   MAINTENANCE_WHITELIST_REMOVE: [Permission.MANAGE_WHITELIST],
   MAINTENANCE_COMMAND: [Permission.MANAGE_WHITELIST],

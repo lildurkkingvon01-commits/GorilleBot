@@ -81,7 +81,7 @@ export const analyticsService = {
     const actions = await auditLogRepository.getTopActions(10, guildId);
 
     const moderationActions = actions.filter((action: any) =>
-      ['GUILD_BANNED', 'GUILD_KICKED', 'user_banned', 'user_unbanned', 'COMMAND_MAINTENANCE_DISABLE'].includes(
+      ['GUILD_BANNED', 'GUILD_KICKED', 'user_banned', 'user_unbanned'].includes(
         action.action
       )
     );

@@ -54,7 +54,7 @@ import { logsRoutes } from '@/routes/logs';
 import { guildRoutes } from '@/routes/guilds';
 import { usersRoutes } from '@/routes/users';
 import { commandsRoutes } from '@/routes/commands';
-import { maintenanceRoutes, backupsRoutes, flagsRoutes, settingsRoutes } from '@/routes/support';
+import { maintenanceRoutes, backupsRoutes, settingsRoutes } from '@/routes/support';
 import { analyticsRoutes } from '@/routes/analytics';
 import { debugRoutes } from '@/routes/debug';
 import { moderationRoutes } from '@/routes/moderation';
@@ -112,7 +112,6 @@ async function registerRoutes() {
   await commandsRoutes(fastify);
   await maintenanceRoutes(fastify);
   await backupsRoutes(fastify);
-  await flagsRoutes(fastify);
   await settingsRoutes(fastify);
   await analyticsRoutes(fastify);
   await debugRoutes(fastify);

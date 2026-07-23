@@ -85,21 +85,21 @@ export const commandRepository = {
     filters?: {
       enabled?: boolean;
     }
-  ): Promise<PaginationResult<Prisma.CommandMaintenanceGetPayload<{}>>> {
-    const where: Prisma.CommandMaintenanceWhereInput = {};
+  ): Promise<PaginationResult<Prisma.CommandStatusGetPayload<{}>>> {
+    const where: Prisma.CommandStatusWhereInput = {};
 
     if (filters?.enabled !== undefined) {
       where.enabled = filters.enabled;
     }
 
     const [data, total] = await Promise.all([
-      prisma.commandMaintenance.findMany({
+      prisma.commandStatus.findMany({
         where,
         orderBy: { command_name: 'asc' } as any,
         skip: calculateSkip(page, limit),
         take: limit,
       }),
-      prisma.commandMaintenance.count({ where }),
+      prisma.commandStatus.count({ where }),
     ]);
 
     return {
@@ -112,25 +112,25 @@ export const commandRepository = {
   },
 
   async findById(id: number) {
-    return prisma.commandMaintenance.findUnique({
+    return prisma.commandStatus.findUnique({
       where: { id },
     });
   },
 
   async findByName(name: string) {
-    return prisma.commandMaintenance.findUnique({
+    return prisma.commandStatus.findUnique({
       where: { command_name: name },
     });
   },
 
   async getEnabled() {
-    return prisma.commandMaintenance.findMany({
+    return prisma.commandStatus.findMany({
       where: { enabled: true },
     });
   },
 
   async getDisabled() {
-    return prisma.commandMaintenance.findMany({
+    return prisma.commandStatus.findMany({
       where: { enabled: false },
     });
   },
@@ -231,49 +231,6 @@ export const whitelistRepository = {
   },
 };
 
-// ==================== Feature Flag Repository ====================
-
-export const flagRepository = {
-  async findMany(
-    page: number,
-    limit: number
-  ): Promise<PaginationResult<Prisma.FeatureFlagGetPayload<{}>>> {
-    const [data, total] = await Promise.all([
-      prisma.featureFlag.findMany({
-        orderBy: { flag_name: 'asc' } as any,
-        skip: calculateSkip(page, limit),
-        take: limit,
-      }),
-      prisma.featureFlag.count(),
-    ]);
-
-    return {
-      data,
-      total,
-      page,
-      limit,
-      pages: Math.ceil(total / limit),
-    };
-  },
-
-  async findByName(name: string) {
-    return prisma.featureFlag.findUnique({
-      where: { flag_name: name },
-    });
-  },
-
-  async isEnabled(name: string) {
-    const flag = await prisma.featureFlag.findUnique({
-      where: { flag_name: name },
-    });
-
-    return flag?.enabled || false;
-  },
-
-  async getAll() {
-    return prisma.featureFlag.findMany();
-  },
-};
 
 // ==================== Backup Repository ====================
 
