@@ -231,7 +231,11 @@ export async function initializeDatabase() {
         check_frequency INT DEFAULT 30,
         reminder_delay INT DEFAULT 24,
         broadcast_channel_id VARCHAR(255),
+        alert_channel_id VARCHAR(255),
+        monitor_channel_id VARCHAR(255),
+        monitor_message_id VARCHAR(255),
         command_permissions JSONB DEFAULT '{}',
+        last_check_time TIMESTAMP,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
@@ -240,6 +244,7 @@ export async function initializeDatabase() {
     try { await db.none("ALTER TABLE guild_configs ADD COLUMN IF NOT EXISTS command_permissions JSONB DEFAULT '{}' "); } catch (e) {}
     try { await db.none('ALTER TABLE guild_configs ADD COLUMN IF NOT EXISTS last_check_time TIMESTAMP'); } catch (e) {}
     try { await db.none('ALTER TABLE guild_configs ADD COLUMN IF NOT EXISTS monitor_message_id VARCHAR(255)'); await db.none('ALTER TABLE guild_configs ADD COLUMN IF NOT EXISTS monitor_channel_id VARCHAR(255)'); } catch (e) {}
+    try { await db.none('ALTER TABLE guild_configs ADD COLUMN IF NOT EXISTS alert_channel_id VARCHAR(255)'); } catch (e) {}
 
     // Command Logs
     await db.none(`CREATE TABLE IF NOT EXISTS command_logs ( id SERIAL PRIMARY KEY, command_name VARCHAR(50) NOT NULL, user_id VARCHAR(255) NOT NULL, username VARCHAR(100), guild_id VARCHAR(255), guild_name VARCHAR(100), arguments TEXT, success BOOLEAN DEFAULT TRUE, error_message TEXT, execution_time_ms INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP )`);

@@ -177,7 +177,7 @@ async function checkInactivityIfNeeded() {
           const alertsTriggered = await checkInactivityForGuild((playersByGuild[guildId] || []).map(normalizePlayerData));
 
           try {
-            const guildConfig = getGuildConfig(guildId);
+            const guildConfig = await getGuildConfig(guildId);
             const monitorChannelId = guildConfig?.monitorChannelId;
             if (monitorChannelId) {
               const guildObj = client.guilds.cache.get(guildId);
@@ -417,7 +417,7 @@ async function checkInactivityForGuild(guildPlayers) {
 
   // Récupérer le seuil du serveur une fois au début (en heures, convertir en jours)
   const guildId = guildPlayers[0].guildId;
-  const guildConfig = getGuildConfig(guildId);
+  const guildConfig = await getGuildConfig(guildId);
   const thresholdHours = guildConfig?.inactivityThreshold || parseInt(process.env.INACTIVITY_THRESHOLD) || 9;
   const thresholdDays = thresholdHours / 24;
   
@@ -448,8 +448,10 @@ async function checkInactivityForGuild(guildPlayers) {
       if (previousStatus === 'inactive' && currentStatus === 'online') {
         console.log(`🟢 RECONNEXION DÉTECTÉE! ${player.playerName} est revenu en ligne!`);
         // Envoyer alerte de reconnexion (toujours envoyer pour notifier le retour)
-        await sendReconnectionAlert(player, daysInactive, thresholdDays);
-        alertsTriggered++;
+        const reconnectionSent = await sendReconnectionAlert(player, daysInactive, thresholdDays);
+        if (reconnectionSent) {
+          alertsTriggered++;
+        }
       }
 
       // Mettre à jour le statut du joueur
@@ -470,8 +472,10 @@ async function checkInactivityForGuild(guildPlayers) {
         if (!lastCheckTime || (now - lastCheckTime) >= 21600) {
           // Log détaillé désactivé
           // console.log(`🚨 ALERTE DÉCLENCHÉE! Jours: ${daysInactive.toFixed(2)} >= Seuil: ${threshold}`);
-          await sendInactivityAlert(player, daysInactive, thresholdDays);
-          alertsTriggered++;
+          const inactivitySent = await sendInactivityAlert(player, daysInactive, thresholdDays);
+          if (inactivitySent) {
+            alertsTriggered++;
+          }
         }
       }
       // Log détaillé désactivé
@@ -485,8 +489,10 @@ async function checkInactivityForGuild(guildPlayers) {
         if (lastAlertTime) {
           const hoursSinceAlert = (Math.floor(Date.now() / 1000) - lastAlertTime) / 3600;
           if (hoursSinceAlert >= 24 && daysInactive >= thresholdDays) {
-            await sendReminderAlert(player, daysInactive, thresholdDays);
-            alertsTriggered++;
+            const reminderSent = await sendReminderAlert(player, daysInactive, thresholdDays);
+            if (reminderSent) {
+              alertsTriggered++;
+            }
           }
         }
       }
@@ -514,17 +520,29 @@ async function sendReconnectionAlert(player, daysInactive, threshold) {
   }
 
   try {
-    const guildConfig = getGuildConfig(player.guildId);
+    const guildConfig = await getGuildConfig(player.guildId);
     const channelId = guildConfig?.alertChannelId;
     if (!channelId) {
       console.warn(`⚠️ Pas de channel d'alerte configuré pour le serveur ${player.guildId}. Ignorer l'alerte de reconnexion pour ${player.playerName}.`);
-      return;
+      return false;
     }
 
-    const channel = await client.channels.fetch(channelId).catch(() => null);
-    if (!channel || channel.type !== ChannelType.GuildText) {
-      console.warn(`⚠️ Channel ${channelId} introuvable ou pas un text channel`);
-      return;
+    const channel = await client.channels.fetch(channelId).catch((err) => {
+      console.error(`❌ Erreur récupération channel ${channelId} pour guild ${player.guildId}:`, {
+        code: err?.code,
+        name: err?.name,
+        message: err?.message,
+        stack: err?.stack
+      });
+      return null;
+    });
+    if (!channel) {
+      console.warn(`⚠️ Channel ${channelId} introuvable. Configure le serveur avec /config`);
+      return false;
+    }
+    if (!channel.isTextBased()) {
+      console.warn(`⚠️ Channel ${channelId} n'est pas un channel texte valide pour la reconnexion`);
+      return false;
     }
 
     // Créer la progression bar
@@ -685,8 +703,13 @@ async function sendReconnectionAlert(player, daysInactive, threshold) {
 
     await updateLastReconnectionAlert(player.id);
     console.log(`✅ Alerte reconnexion envoyée pour ${player.playerName}\n`);
+    return true;
   } catch (error) {
-    console.error(`❌ Erreur alerte reconnexion:`, error.message);
+    console.error(`❌ Erreur alerte reconnexion:`, {
+      message: error?.message,
+      stack: error?.stack
+    });
+    return false;
   }
 }
 
@@ -705,27 +728,32 @@ async function sendInactivityAlert(player, daysInactive, threshold) {
   }
 
   try {
-    const guildConfig = getGuildConfig(player.guildId);
+    const guildConfig = await getGuildConfig(player.guildId);
     const channelId = guildConfig?.alertChannelId;
     if (!channelId) {
       console.warn(`⚠️ Pas de channel d'alerte configuré pour le serveur ${player.guildId}. Ignorer l'alerte d'inactivité pour ${player.playerName}.`);
-      return;
+      return false;
     }
 
-    console.log(`🔍 Récupération du channel ${channelId}...`);
+    console.log(`🔍 Récupération du channel d'alerte ${channelId} pour ${player.playerName}...`);
     const channel = await client.channels.fetch(channelId).catch((err) => {
-      console.error(`❌ Erreur récupération channel: ${err.message}`);
+      console.error(`❌ Erreur récupération channel ${channelId} pour guild ${player.guildId}:`, {
+        code: err?.code,
+        name: err?.name,
+        message: err?.message,
+        stack: err?.stack
+      });
       return null;
     });
 
     if (!channel) {
       console.warn(`❌ Channel ${channelId} introuvable. Configure le serveur avec /config`);
-      return;
+      return false;
     }
     
-    if (channel.type !== ChannelType.GuildText) {
-      console.warn(`❌ Le channel ${channelId} n'est pas un channel tekstuel`);
-      return;
+    if (!channel.isTextBased()) {
+      console.warn(`❌ Le channel ${channelId} n'est pas un channel texte valide pour ${player.playerName}`);
+      return false;
     }
 
     // Créer la progression bar
@@ -818,7 +846,7 @@ async function sendInactivityAlert(player, daysInactive, threshold) {
       .setFooter({ text: `Gorille™・BOTS | Alerte Inactivité • Seuil: ${formatInactivityTime(threshold)}`, iconURL: user?.displayAvatarURL({ size: 256 }) || 'https://discord.com/assets/default_user_avatar.png' });
 
     const mention = `<@${player.userId}>`;
-    console.log(`📨 Envoi du message au channel ${channel.id}...`);
+    console.log(`📨 Envoi du message d'inactivité au channel ${channel.id}...`);
     
     // Boutons
     const row = new ActionRowBuilder()
@@ -833,7 +861,22 @@ async function sendInactivityAlert(player, daysInactive, threshold) {
           .setURL(`https://discord.com/users/${player.userId}`)
       );
 
-    await channel.send({ content: mention, embeds: [embed], components: [row] });
+    console.log(`[ALERT][${player.guildId}] sendAttempt in ${channelId} for ${player.playerName}`);
+    const sentMessage = await channel.send({ content: mention, embeds: [embed], components: [row] }).catch((err) => {
+      console.error(`❌ Erreur envoi d'alerte d'inactivité pour ${player.playerName} dans ${channel.id}:`, {
+        code: err?.code,
+        name: err?.name,
+        message: err?.message,
+        stack: err?.stack
+      });
+      return null;
+    });
+
+    if (!sentMessage) {
+      console.warn(`[ALERT][${player.guildId}] sendFailed in ${channelId} for ${player.playerName}`);
+      return false;
+    }
+    console.log(`[ALERT][${player.guildId}] sendSuccess in ${channelId} messageId=${sentMessage.id}`);
 
     // Envoyer un DM si activé
     if (guildConfig?.alertsViaDM) {
@@ -884,8 +927,13 @@ async function sendInactivityAlert(player, daysInactive, threshold) {
 
     await updateAlertSentTime(player.id, 'inactive');
     console.log(`✅ Alerte envoyée pour ${player.playerName} !\n`);
+    return true;
   } catch (error) {
-    console.error(`❌ Erreur envoi alerte pour ${player.playerName}:`, error.message);
+    console.error(`❌ Erreur envoi alerte pour ${player.playerName}:`, {
+      message: error?.message,
+      stack: error?.stack
+    });
+    return false;
   }
 }
 
@@ -904,17 +952,32 @@ async function sendReminderAlert(player, daysInactive, threshold) {
   }
 
   try {
-    const guildConfig = getGuildConfig(player.guildId);
+    const guildConfig = await getGuildConfig(player.guildId);
     const channelId = guildConfig?.alertChannelId;
     if (!channelId) {
       console.warn(`⚠️ Pas de channel d'alerte configuré pour le serveur ${player.guildId}. Ignorer le rappel pour ${player.playerName}.`);
-      return;
+      return false;
     }
 
-    const channel = await client.channels.fetch(channelId).catch(() => null);
+    const channel = await client.channels.fetch(channelId).catch((err) => {
+      console.error(`❌ Erreur récupération du channel ${channelId} pour rappel ${player.playerName}:`, {
+        code: err?.code,
+        name: err?.name,
+        message: err?.message,
+        stack: err?.stack
+      });
+      return null;
+    });
 
-    if (!channel || channel.type !== ChannelType.GuildText) {
-      return;
+    if (!channel) {
+      console.warn(`❌ Channel ${channelId} introuvable pour rappel de ${player.playerName}.`);
+      return false;
+    }
+    console.log(`[ALERT][${player.guildId}] reminderChannel alertChannelId=${channelId} channelType=${channel.type} isTextBased=${channel.isTextBased?.()}`);
+
+    if (!channel.isTextBased()) {
+      console.warn(`❌ Le channel ${channelId} n'est pas un channel texte valide pour rappel.`);
+      return false;
     }
 
     // Créer la progression bar
@@ -1011,7 +1074,22 @@ async function sendReminderAlert(player, daysInactive, threshold) {
           .setURL(`https://discord.com/users/${player.userId}`)
       );
 
-    await channel.send({ content: mention, embeds: [embed], components: [row] });
+    console.log(`[ALERT][${player.guildId}] reminderSendAttempt in ${channelId} for ${player.playerName}`);
+    const sentMessage = await channel.send({ content: mention, embeds: [embed], components: [row] }).catch((err) => {
+      console.error(`❌ Erreur envoi rappel d'inactivité pour ${player.playerName} dans ${channel.id}:`, {
+        code: err?.code,
+        name: err?.name,
+        message: err?.message,
+        stack: err?.stack
+      });
+      return null;
+    });
+
+    if (!sentMessage) {
+      console.warn(`[ALERT][${player.guildId}] reminderSendFailed in ${channelId} for ${player.playerName}`);
+      return false;
+    }
+    console.log(`[ALERT][${player.guildId}] reminderSendSuccess in ${channelId} messageId=${sentMessage.id}`);
 
     // Envoyer un DM si activé
     if (guildConfig?.alertsViaDM) {
@@ -1062,7 +1140,12 @@ async function sendReminderAlert(player, daysInactive, threshold) {
 
     await updateAlertSentTime(player.id, 'reminder');
     console.log(`✅ Rappel envoyé pour ${player.playerName} !\n`);
+    return true;
   } catch (error) {
-    console.error(`❌ Erreur envoi rappel pour ${player.playerName}:`, error.message);
+    console.error(`❌ Erreur envoi rappel pour ${player.playerName}:`, {
+      message: error?.message,
+      stack: error?.stack
+    });
+    return false;
   }
 }
