@@ -197,12 +197,7 @@ async function handleFactionInfo(interaction) {
 }
 
 async function handleFactionSave(interaction) {
-  // Vérification de permission
-  if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
-    return interaction.editReply({
-      content: '❌・Vous devez être **administrateur** pour utiliser cette commande !'
-    });
-  }
+  // Authorization handled centrally by GlobalCommandMiddleware
 
   const url = interaction.options.getString('url');
   let nom = interaction.options.getString('nom');

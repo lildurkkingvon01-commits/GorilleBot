@@ -15,11 +15,7 @@ function createProgressBar(percentage, maxChars = 15) {
 }
 
 export async function execute(interaction) {
-  if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
-    return await interaction.editReply({
-      content: '❌ Vous devez être **administrateur** pour utiliser cette commande !'
-    });
-  }
+  // Authorization handled centrally by GlobalCommandMiddleware
   
   try {
     const players = await getPlayersByGuild(interaction.guildId);

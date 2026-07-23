@@ -1,6 +1,6 @@
 import cron from 'node-cron';
-import { getPlayers, getPlayersByGuild, updatePlayerCheckTime, updateAlertSentTime, getLastAlertTime, updatePlayerStatus, updateLastReconnectionAlert, getLastReconnectionAlertTime, getCheckFrequency, getAllLastCheckTimes, updateLastCheckTime, getBroadcastChannel } from '../utils/database.js';
-import { getGuildConfig, setGuildConfig, getConfiguredMonitorGuildIds } from '../utils/guildConfig.js';
+import { getPlayers, getPlayersByGuild, updatePlayerCheckTime, updateAlertSentTime, getLastAlertTime, updatePlayerStatus, updateLastReconnectionAlert, getLastReconnectionAlertTime, getCheckFrequency, getAllLastCheckTimes, updateLastCheckTime, getBroadcastChannel, getGuildConfig as getDbGuildConfig, updateGuildConfig, getConfiguredMonitorGuildIdsFromDb } from '../utils/database.js';
+import { getGuildConfig as getFileGuildConfig, getConfiguredMonitorGuildIds } from '../utils/guildConfig.js';
 import { scrapePactifyProfile, formatDays } from '../utils/scraper.js';
 import { formatInactivityTime, createProgressBar, getColorByStatus, getStatusEmoji } from '../utils/embedFormatter.js';
 import { EmbedBuilder, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
@@ -113,13 +113,21 @@ async function checkInactivityIfNeeded() {
       console.warn(`⚠️ ${orphanCount} joueur(s) sans guildId ignoré(s)`);
     }
 
-    const configuredGuildIds = getConfiguredMonitorGuildIds();
+    const fileConfiguredGuildIds = getConfiguredMonitorGuildIds();
+    const dbConfiguredGuildIds = await getConfiguredMonitorGuildIdsFromDb();
+    const configuredGuildIds = Array.from(new Set([...fileConfiguredGuildIds, ...dbConfiguredGuildIds]));
     const guildIdsToUpdate = new Set([...Object.keys(playersByGuild), ...configuredGuildIds]);
 
     if (guildIdsToUpdate.size === 0) {
       console.log('[MONITOR] Aucun serveur à mettre à jour ce tick');
       return;
     }
+
+    console.log('[MONITOR] configured guild ids', {
+      fileConfiguredGuildIds,
+      dbConfiguredGuildIds,
+      mergedConfiguredGuildIds: configuredGuildIds
+    });
 
     for (const guildId of guildIdsToUpdate) {
       try {
@@ -199,12 +207,37 @@ export async function runManualInactivityCheck(guildId) {
 
 export async function updateGuildMonitorMessage(guildId, frequency, nextCheckIn, playerCount) {
   try {
-    const guildConfig = getGuildConfig(guildId);
-    const monitorChannelId = guildConfig?.monitorChannelId;
+    const dbGuildConfig = await getDbGuildConfig(guildId);
+    const fileGuildConfig = getFileGuildConfig(guildId);
+    const monitorChannelId = dbGuildConfig?.monitor_channel_id || fileGuildConfig?.monitorChannelId;
+    const monitorMessageId = dbGuildConfig?.monitor_message_id || fileGuildConfig?.monitorMessageId;
+    const alertChannelId = dbGuildConfig?.alert_channel_id || fileGuildConfig?.alertChannelId;
+    const guildConfig = {
+      ...fileGuildConfig,
+      ...dbGuildConfig,
+      monitorChannelId,
+      monitorMessageId,
+      alertChannelId
+    };
+
     if (!monitorChannelId) {
       console.log(`[MONITOR][${guildId}] skip update - no monitorChannelId configured`);
       return;
     }
+
+    const guildPlayers = await getPlayersByGuild(guildId);
+    const dbPlayerCount = Array.isArray(guildPlayers) ? guildPlayers.length : 0;
+    const passedPlayerCount = playerCount;
+    console.log(`[MONITOR][${guildId}] player count source debug`, {
+      guildId,
+      function: 'getPlayersByGuild',
+      sql: 'SELECT id, discord_id AS "discordId", username, username AS "playerName", faction AS "playerFaction", url, guild_id AS "guildId", player_status AS "playerStatus", last_check_time AS "lastCheckTime", days_inactive AS "daysInactive", created_at AS "createdAt", updated_at AS "updatedAt" FROM players WHERE guild_id = $1',
+      dbPlayerCount,
+      passedPlayerCount,
+      beforeEmbed: true
+    });
+
+    const effectivePlayerCount = dbPlayerCount;
 
     const guild = client.guilds.cache.get(guildId);
     if (!guild) {
@@ -254,7 +287,7 @@ export async function updateGuildMonitorMessage(guildId, frequency, nextCheckIn,
 
     const prevState = monitorMessageStates[guildId];
     const newState = buildMonitorState({
-      playerCount,
+      playerCount: effectivePlayerCount,
       frequency,
       nextCheckLabel,
       thresholdDisplay,
@@ -265,8 +298,10 @@ export async function updateGuildMonitorMessage(guildId, frequency, nextCheckIn,
     console.log(`[MONITOR][${guildId}] updateGuildMonitorMessage`, {
       guildName,
       monitorChannelId,
-      monitorMessageId: guildConfig.monitorMessageId,
-      playerCount,
+      monitorMessageId,
+      passedPlayerCount,
+      dbPlayerCount,
+      effectivePlayerCount,
       frequency,
       lastCheck: lastCheck ? new Date(lastCheck).toISOString() : null,
       secondsElapsed,
@@ -282,7 +317,7 @@ export async function updateGuildMonitorMessage(guildId, frequency, nextCheckIn,
       .setDescription(`Suivi automatique des joueurs inactifs pour **${guildName}**`)
       .addFields(
         { name: '📊 Joueurs surveillés', value: `
-\`${playerCount} joueur(s)\``, inline: true },
+\`${effectivePlayerCount} joueur(s)\``, inline: true },
         { name: '⏱️ Seuil', value: `\`${thresholdDisplay}\``, inline: true },
         { name: '🔁 Fréquence', value: `\`${frequency} minutes\``, inline: true },
         { name: '⌛ Prochaine vérif', value: `\`${nextCheckLabel}\``, inline: true },
@@ -318,7 +353,7 @@ export async function updateGuildMonitorMessage(guildId, frequency, nextCheckIn,
     } else {
       try {
         message = await channel.send({ embeds: [embed] });
-        await setGuildConfig(guildId, guildConfig.alertChannelId, { monitorChannelId, monitorMessageId: message.id });
+        await updateGuildConfig(guildId, { monitor_channel_id: monitorChannelId, monitor_message_id: message.id, alert_channel_id: guildConfig.alertChannelId || undefined });
         monitorMessageStates[guildId] = newState;
         console.log(`[MONITOR][${guildId}] monitor message created`, { monitorMessageId: message.id });
       } catch (createError) {

@@ -1,0 +1,548 @@
+[
+  {
+    "id": "d6bf47cd-42b5-4836-9245-1935d19b5edf",
+    "status": "SUCCESS",
+    "createdAt": "2026-07-23T15:43:41.891Z",
+    "meta": {
+      "buildOnly": false,
+      "fileServiceManifest": {},
+      "imageDigest": "sha256:f6202839a125929226035ac78b839c55acbb80cb0c3c52057097184da008b77e",
+      "logsV2": true,
+      "nixpacksProviders": [],
+      "propertyFileMapping": {},
+      "reason": "deploy",
+      "rootDirectory": null,
+      "runtime": "V2",
+      "serviceManifest": {
+        "build": {
+          "buildCommand": null,
+          "buildEnvironment": "V3",
+          "builder": "RAILPACK",
+          "dockerfilePath": null,
+          "nixpacksConfigPath": null,
+          "nixpacksPlan": null,
+          "watchPatterns": []
+        },
+        "deploy": {
+          "cronSchedule": null,
+          "drainingSeconds": null,
+          "healthcheckPath": null,
+          "healthcheckTimeout": null,
+          "ipv6EgressEnabled": false,
+          "limitOverride": null,
+          "multiRegionConfig": {
+            "sfo": {
+              "numReplicas": 1
+            }
+          },
+          "numReplicas": 1,
+          "overlapSeconds": null,
+          "preDeployCommand": null,
+          "region": null,
+          "registryCredentials": null,
+          "requiredMountPath": null,
+          "restartPolicyMaxRetries": 10,
+          "restartPolicyType": "ON_FAILURE",
+          "runtime": "V2",
+          "sleepApplication": false,
+          "startCommand": null,
+          "useLegacyStacker": false
+        }
+      },
+      "volumeMounts": []
+    }
+  },
+  {
+    "id": "96b2c2a2-00ba-4a92-b8e1-d24370ab3525",
+    "status": "REMOVED",
+    "createdAt": "2026-07-23T15:28:42.612Z",
+    "meta": {
+      "branch": "main",
+      "buildOnly": false,
+      "commitAuthor": "lildurkkingvon01-commits",
+      "commitHash": "c3cb475b13016c3de70a1abef693707de8f28f16",
+      "commitMessage": "Fix monitor timer updates for configured guilds without active players and add detailed monitor logging",
+      "fileServiceManifest": {},
+      "imageDigest": "sha256:01e9dfc7f9e2e7272fca56d64613956e1d646cee477a684a0ce61c8e43764b84",
+      "logsV2": true,
+      "nixpacksProviders": [],
+      "plan": "trial",
+      "propertyFileMapping": {},
+      "railpackInfo": {
+        "detectedProviders": [
+          "node"
+        ],
+        "metadata": {
+          "nodePackageManager": "npm",
+          "nodeRuntime": "node",
+          "providers": "node"
+        },
+        "railpackVersion": "0.32.0",
+        "resolvedPackages": {
+          "node": {
+            "requestedVersion": "22",
+            "resolvedVersion": "22.23.1"
+          }
+        }
+      },
+      "reason": "deploy",
+      "repo": "lildurkkingvon01-commits/GorilleBot",
+      "rootDirectory": null,
+      "runtime": "V2",
+      "serviceManifest": {
+        "build": {
+          "buildCommand": null,
+          "buildEnvironment": "V3",
+          "builder": "RAILPACK",
+          "dockerfilePath": null,
+          "nixpacksConfigPath": null,
+          "nixpacksPlan": null,
+          "watchPatterns": []
+        },
+        "deploy": {
+          "cronSchedule": null,
+          "drainingSeconds": null,
+          "healthcheckPath": null,
+          "healthcheckTimeout": null,
+          "ipv6EgressEnabled": false,
+          "limitOverride": null,
+          "multiRegionConfig": {
+            "sfo": {
+              "numReplicas": 1
+            }
+          },
+          "numReplicas": 1,
+          "overlapSeconds": null,
+          "preDeployCommand": null,
+          "region": null,
+          "registryCredentials": null,
+          "requiredMountPath": null,
+          "restartPolicyMaxRetries": 10,
+          "restartPolicyType": "ON_FAILURE",
+          "runtime": "V2",
+          "sleepApplication": false,
+          "startCommand": null,
+          "useLegacyStacker": false
+        }
+      },
+      "volumeMounts": []
+    }
+  },
+  {
+    "id": "3926736b-35a8-467a-b61d-9758596cb26d",
+    "status": "REMOVED",
+    "createdAt": "2026-07-23T11:00:47.178Z",
+    "meta": {
+      "branch": "main",
+      "buildOnly": false,
+      "commitAuthor": "lildurkkingvon01-commits",
+      "commitHash": "e04cda834ed947e5bcf340de91465e41c580a5cb",
+      "commitMessage": "Refactor status timer to minute-based updates and prevent redundant message edits",
+      "fileServiceManifest": {},
+      "imageDigest": "sha256:3a81c46eb1334bb2764ad5a8fe4d67398fcef0bb17c330647a248868587ee07c",
+      "logsV2": true,
+      "nixpacksProviders": [],
+      "plan": "trial",
+      "propertyFileMapping": {},
+      "railpackInfo": {
+        "detectedProviders": [
+          "node"
+        ],
+        "metadata": {
+          "nodePackageManager": "npm",
+          "nodeRuntime": "node",
+          "providers": "node"
+        },
+        "railpackVersion": "0.32.0",
+        "resolvedPackages": {
+          "node": {
+            "requestedVersion": "22",
+            "resolvedVersion": "22.23.1"
+          }
+        }
+      },
+      "reason": "deploy",
+      "repo": "lildurkkingvon01-commits/GorilleBot",
+      "rootDirectory": null,
+      "runtime": "V2",
+      "serviceManifest": {
+        "build": {
+          "buildCommand": null,
+          "buildEnvironment": "V3",
+          "builder": "RAILPACK",
+          "dockerfilePath": null,
+          "nixpacksConfigPath": null,
+          "nixpacksPlan": null,
+          "watchPatterns": []
+        },
+        "deploy": {
+          "cronSchedule": null,
+          "drainingSeconds": null,
+          "healthcheckPath": null,
+          "healthcheckTimeout": null,
+          "ipv6EgressEnabled": false,
+          "limitOverride": null,
+          "multiRegionConfig": {
+            "sfo": {
+              "numReplicas": 1
+            }
+          },
+          "numReplicas": 1,
+          "overlapSeconds": null,
+          "preDeployCommand": null,
+          "region": null,
+          "registryCredentials": null,
+          "requiredMountPath": null,
+          "restartPolicyMaxRetries": 10,
+          "restartPolicyType": "ON_FAILURE",
+          "runtime": "V2",
+          "sleepApplication": false,
+          "startCommand": null,
+          "useLegacyStacker": false
+        }
+      },
+      "volumeMounts": []
+    }
+  },
+  {
+    "id": "66b99458-4d4e-4401-a389-0b1b7e4fc0b8",
+    "status": "REMOVED",
+    "createdAt": "2026-07-23T10:44:10.391Z",
+    "meta": {
+      "branch": "main",
+      "buildOnly": false,
+      "commitAuthor": "lildurkkingvon01-commits",
+      "commitHash": "bfeeb7da7e3c8a80150cdd0eb93ebcadd5781f26",
+      "commitMessage": "Fix immediate statuschannel embed and auto-create guild_stats table",
+      "fileServiceManifest": {},
+      "imageDigest": "sha256:a275161e4d854bf1c7fd260f3cbe3410e28c28886bbdb3494e2037a5fa0e1997",
+      "logsV2": true,
+      "nixpacksProviders": [],
+      "plan": "trial",
+      "propertyFileMapping": {},
+      "railpackInfo": {
+        "detectedProviders": [
+          "node"
+        ],
+        "metadata": {
+          "nodePackageManager": "npm",
+          "nodeRuntime": "node",
+          "providers": "node"
+        },
+        "railpackVersion": "0.32.0",
+        "resolvedPackages": {
+          "node": {
+            "requestedVersion": "22",
+            "resolvedVersion": "22.23.1"
+          }
+        }
+      },
+      "reason": "deploy",
+      "repo": "lildurkkingvon01-commits/GorilleBot",
+      "rootDirectory": null,
+      "runtime": "V2",
+      "serviceManifest": {
+        "build": {
+          "buildCommand": null,
+          "buildEnvironment": "V3",
+          "builder": "RAILPACK",
+          "dockerfilePath": null,
+          "nixpacksConfigPath": null,
+          "nixpacksPlan": null,
+          "watchPatterns": []
+        },
+        "deploy": {
+          "cronSchedule": null,
+          "drainingSeconds": null,
+          "healthcheckPath": null,
+          "healthcheckTimeout": null,
+          "ipv6EgressEnabled": false,
+          "limitOverride": null,
+          "multiRegionConfig": {
+            "sfo": {
+              "numReplicas": 1
+            }
+          },
+          "numReplicas": 1,
+          "overlapSeconds": null,
+          "preDeployCommand": null,
+          "region": null,
+          "registryCredentials": null,
+          "requiredMountPath": null,
+          "restartPolicyMaxRetries": 10,
+          "restartPolicyType": "ON_FAILURE",
+          "runtime": "V2",
+          "sleepApplication": false,
+          "startCommand": null,
+          "useLegacyStacker": false
+        }
+      },
+      "volumeMounts": []
+    }
+  },
+  {
+    "id": "04c66784-1b1e-4d6a-8aea-1280f9595ab0",
+    "status": "REMOVED",
+    "createdAt": "2026-07-23T10:30:58.717Z",
+    "meta": {
+      "branch": "main",
+      "buildOnly": false,
+      "commitAuthor": "lildurkkingvon01-commits",
+      "commitHash": "f1b0521526172b778b9aa7be24dae47c283a8ea6",
+      "commitMessage": "Remove legacy middleware_performance monitoring subsystem",
+      "fileServiceManifest": {},
+      "imageDigest": "sha256:4eb99b693761228a2920cd6aa94d3047cc7d033820fe814286b45c784dfe0e1c",
+      "logsV2": true,
+      "nixpacksProviders": [],
+      "plan": "trial",
+      "propertyFileMapping": {},
+      "railpackInfo": {
+        "detectedProviders": [
+          "node"
+        ],
+        "metadata": {
+          "nodePackageManager": "npm",
+          "nodeRuntime": "node",
+          "providers": "node"
+        },
+        "railpackVersion": "0.32.0",
+        "resolvedPackages": {
+          "node": {
+            "requestedVersion": "22",
+            "resolvedVersion": "22.23.1"
+          }
+        }
+      },
+      "reason": "deploy",
+      "repo": "lildurkkingvon01-commits/GorilleBot",
+      "rootDirectory": null,
+      "runtime": "V2",
+      "serviceManifest": {
+        "build": {
+          "buildCommand": null,
+          "buildEnvironment": "V3",
+          "builder": "RAILPACK",
+          "dockerfilePath": null,
+          "nixpacksConfigPath": null,
+          "nixpacksPlan": null,
+          "watchPatterns": []
+        },
+        "deploy": {
+          "cronSchedule": null,
+          "drainingSeconds": null,
+          "healthcheckPath": null,
+          "healthcheckTimeout": null,
+          "ipv6EgressEnabled": false,
+          "limitOverride": null,
+          "multiRegionConfig": {
+            "sfo": {
+              "numReplicas": 1
+            }
+          },
+          "numReplicas": 1,
+          "overlapSeconds": null,
+          "preDeployCommand": null,
+          "region": null,
+          "registryCredentials": null,
+          "requiredMountPath": null,
+          "restartPolicyMaxRetries": 10,
+          "restartPolicyType": "ON_FAILURE",
+          "runtime": "V2",
+          "sleepApplication": false,
+          "startCommand": null,
+          "useLegacyStacker": false
+        }
+      },
+      "volumeMounts": []
+    }
+  },
+  {
+    "id": "fe28bb12-c7d8-40e1-9581-8b2a7f1e86d1",
+    "status": "REMOVED",
+    "createdAt": "2026-07-23T09:47:28.030Z",
+    "meta": {
+      "branch": "main",
+      "buildOnly": false,
+      "commitAuthor": "",
+      "commitHash": "5d4b240a5040c41c72a687bd0f92971be501bd41",
+      "commitMessage": "Remove legacy feature flags and command maintenance support",
+      "fileServiceManifest": {},
+      "ignoreWatchPatterns": false,
+      "imageDigest": "sha256:b5d5323801a4f036267a1fe9173955fc2c469272160c7cafba12ff5d3b5266cd",
+      "logsV2": true,
+      "nixpacksProviders": [],
+      "plan": "trial",
+      "propertyFileMapping": {},
+      "railpackInfo": {
+        "detectedProviders": [
+          "node"
+        ],
+        "metadata": {
+          "nodePackageManager": "npm",
+          "nodeRuntime": "node",
+          "providers": "node"
+        },
+        "railpackVersion": "0.32.0",
+        "resolvedPackages": {
+          "node": {
+            "requestedVersion": "22",
+            "resolvedVersion": "22.23.1"
+          }
+        }
+      },
+      "reason": "deploy",
+      "repo": "lildurkkingvon01-commits/GorilleBot",
+      "rootDirectory": null,
+      "runtime": "V2",
+      "serviceManifest": {
+        "build": {
+          "buildCommand": null,
+          "buildEnvironment": "V3",
+          "builder": "RAILPACK",
+          "dockerfilePath": null,
+          "nixpacksConfigPath": null,
+          "nixpacksPlan": null,
+          "watchPatterns": []
+        },
+        "deploy": {
+          "cronSchedule": null,
+          "drainingSeconds": null,
+          "healthcheckPath": null,
+          "healthcheckTimeout": null,
+          "ipv6EgressEnabled": false,
+          "limitOverride": null,
+          "multiRegionConfig": {
+            "sfo": {
+              "numReplicas": 1
+            }
+          },
+          "numReplicas": 1,
+          "overlapSeconds": null,
+          "preDeployCommand": null,
+          "region": null,
+          "registryCredentials": null,
+          "requiredMountPath": null,
+          "restartPolicyMaxRetries": 10,
+          "restartPolicyType": "ON_FAILURE",
+          "runtime": "V2",
+          "sleepApplication": false,
+          "startCommand": null,
+          "useLegacyStacker": false
+        }
+      },
+      "volumeMounts": []
+    }
+  },
+  {
+    "id": "6ac0cc64-f567-4eff-a33a-66591b7a625c",
+    "status": "REMOVED",
+    "createdAt": "2026-07-23T09:46:48.072Z",
+    "meta": {
+      "buildOnly": false,
+      "cliAgentSessionId": "ac362803-835b-4f38-a897-6bd197c9d5ee",
+      "cliCaller": "agent_unknown:vscode",
+      "fileServiceManifest": {},
+      "ignoreWatchPatterns": true,
+      "imageDigest": "sha256:788759b7a635486c67dbbb06c826819e9aaa900194c5f63be357b68683978e5b",
+      "logsV2": true,
+      "nixpacksProviders": [],
+      "propertyFileMapping": {},
+      "reason": "redeploy",
+      "rootDirectory": null,
+      "runtime": "V2",
+      "serviceManifest": {
+        "build": {
+          "buildCommand": null,
+          "buildEnvironment": "V3",
+          "builder": "RAILPACK",
+          "dockerfilePath": null,
+          "nixpacksConfigPath": null,
+          "nixpacksPlan": null,
+          "watchPatterns": []
+        },
+        "deploy": {
+          "cronSchedule": null,
+          "drainingSeconds": null,
+          "healthcheckPath": null,
+          "healthcheckTimeout": null,
+          "ipv6EgressEnabled": false,
+          "limitOverride": null,
+          "multiRegionConfig": {
+            "sfo": {
+              "numReplicas": 1
+            }
+          },
+          "numReplicas": 1,
+          "overlapSeconds": null,
+          "preDeployCommand": null,
+          "region": null,
+          "registryCredentials": null,
+          "requiredMountPath": null,
+          "restartPolicyMaxRetries": 10,
+          "restartPolicyType": "ON_FAILURE",
+          "runtime": "V2",
+          "sleepApplication": false,
+          "startCommand": null,
+          "useLegacyStacker": false
+        }
+      },
+      "skipBuildCache": true,
+      "volumeMounts": []
+    }
+  },
+  {
+    "id": "1e91b9b1-dea5-45c8-a7a4-33ac27fea4ee",
+    "status": "REMOVED",
+    "createdAt": "2026-07-23T08:58:31.694Z",
+    "meta": {
+      "buildOnly": false,
+      "cliAgentSessionId": "ac362803-835b-4f38-a897-6bd197c9d5ee",
+      "cliCaller": "agent_unknown:vscode",
+      "fileServiceManifest": {},
+      "imageDigest": "sha256:bbd33ff11ec9cb989a70c55ddd4194b737ed45608c49698269042cfae6009bdb",
+      "logsV2": true,
+      "nixpacksProviders": [],
+      "propertyFileMapping": {},
+      "reason": "deploy",
+      "rootDirectory": null,
+      "runtime": "V2",
+      "serviceManifest": {
+        "build": {
+          "buildCommand": null,
+          "buildEnvironment": "V3",
+          "builder": "RAILPACK",
+          "dockerfilePath": null,
+          "nixpacksConfigPath": null,
+          "nixpacksPlan": null,
+          "watchPatterns": []
+        },
+        "deploy": {
+          "cronSchedule": null,
+          "drainingSeconds": null,
+          "healthcheckPath": null,
+          "healthcheckTimeout": null,
+          "ipv6EgressEnabled": false,
+          "limitOverride": null,
+          "multiRegionConfig": {
+            "sfo": {
+              "numReplicas": 1
+            }
+          },
+          "numReplicas": 1,
+          "overlapSeconds": null,
+          "preDeployCommand": null,
+          "region": null,
+          "registryCredentials": null,
+          "requiredMountPath": null,
+          "restartPolicyMaxRetries": 10,
+          "restartPolicyType": "ON_FAILURE",
+          "runtime": "V2",
+          "sleepApplication": false,
+          "startCommand": null,
+          "useLegacyStacker": false
+        }
+      },
+      "volumeMounts": []
+    }
+  }
+]

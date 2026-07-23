@@ -3,6 +3,11 @@ import { setGuildConfig, setGuildDMAlert } from '../utils/guildConfig.js';
 import { getPlayersByGuild, getCheckFrequency } from '../utils/database.js';
 import { updateGuildMonitorMessage } from '../cron/checkInactivity.js';
 import { createSuccessPreset, addSection, createField } from '../utils/embedPresets.js';
+import GlobalCommandMiddleware from '../middleware/globalMiddleware.js';
+
+function isBotOwner(userId) {
+  return GlobalCommandMiddleware.OWNER_IDS.includes(userId);
+}
 
 export const data = new SlashCommandBuilder()
   .setName('config')
@@ -38,7 +43,7 @@ export const data = new SlashCommandBuilder()
 
 export async function execute(interaction) {
   // Vérification de permission (sécurité supplémentaire)
-  if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
+  if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator) && !isBotOwner(interaction.user.id)) {
     return interaction.editReply({
       content: '❌ Vous devez être **administrateur** pour utiliser cette commande !'
     });
@@ -108,6 +113,15 @@ export async function execute(interaction) {
     const savedConfig = await setGuildConfig(interaction.guildId, alertChannelId, {
       monitorChannelId: statusChannel ? statusChannel.id : undefined
     });
+
+    try {
+      await database.updateGuildConfig(interaction.guildId, {
+        alert_channel_id: alertChannelId,
+        monitor_channel_id: statusChannel ? statusChannel.id : undefined
+      });
+    } catch (err) {
+      console.warn(`[CONFIG] Impossible de synchroniser la config du serveur ${interaction.guildId} en base:`, err.message || err);
+    }
 
     // Actualiser immédiatement le message de statut si un channel est défini
     if (statusChannel) {

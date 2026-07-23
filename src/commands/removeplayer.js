@@ -6,12 +6,7 @@ export const data = new SlashCommandBuilder()
   .setDescription('Affiche les joueurs du serveur et supprime celui sélectionné');
 
 export async function execute(interaction) {
-  // Vérification de permission
-  if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
-    return interaction.editReply({
-      content: '❌・Vous devez être **administrateur** pour utiliser cette commande !'
-    });
-  }
+  // Authorization handled centrally by GlobalCommandMiddleware
 
   try {
     // Récupérer UNIQUEMENT les joueurs de ce serveur

@@ -55,12 +55,7 @@ export async function execute(interaction) {
   if (!interaction.guildId) {
     return interaction.editReply({ content: '❌ Cette commande doit être utilisée dans un serveur Discord.' });
   }
-  // Vérification de permission (sécurité supplémentaire)
-  if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
-    return interaction.editReply({
-      content: '❌ Vous devez être **administrateur** pour utiliser cette commande !'
-    });
-  }
+  // Authorization handled centrally by GlobalCommandMiddleware
 
   const playerName = interaction.options.getString('nom');
   const member = interaction.options.getUser('membre');

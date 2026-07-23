@@ -25,9 +25,7 @@ export async function execute(interaction) {
     return interaction.reply(options);
   };
 
-  if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
-    return respond({ content: '❌ Administrateur requis', ephemeral: true });
-  }
+  // Authorization handled centrally by GlobalCommandMiddleware
 
   const action = interaction.options.getString('action');
   const target = interaction.options.getString('target');

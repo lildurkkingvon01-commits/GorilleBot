@@ -49,16 +49,7 @@ export async function execute(interaction) {
     }
 
     // ========== STEP 2: Permission Check ==========
-    console.log('[FSAVE] Step 2: Checking permissions...');
-    if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
-      console.log('[FSAVE] ❌ User is not admin');
-      await interaction.editReply({
-        content: '❌・Vous devez être **administrateur** pour utiliser cette commande !'
-      });
-      isReplied = true;
-      return;
-    }
-    console.log('[FSAVE] ✅ User is admin');
+    console.log('[FSAVE] Step 2: Authorization delegated to middleware');
 
     // ========== STEP 3: Get Input Parameters ==========
     console.log('[FSAVE] Step 3: Reading parameters...');

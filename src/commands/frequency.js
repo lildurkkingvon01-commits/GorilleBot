@@ -25,12 +25,7 @@ export const data = new SlashCommandBuilder()
   );
 
 export async function execute(interaction) {
-  // Vérification de permission
-  if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
-    return await interaction.editReply({
-      content: '❌・Vous devez être **administrateur** pour utiliser cette commande !'
-    });
-  }
+  // Authorization handled centrally by GlobalCommandMiddleware
 
   const subcommand = interaction.options.getSubcommand();
 

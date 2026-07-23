@@ -1062,6 +1062,15 @@ client.on('interactionCreate', async (interaction) => {
     let middlewareConflict = null;
     let commandBlockedBy = null;
 
+    console.log('[INTERACTION RECEIVED]', {
+      userId: interaction.user.id,
+      username: interaction.user.username,
+      guildId: interaction.guildId,
+      channelId: interaction.channelId,
+      commandName,
+      options: interaction.options?.data?.map(d => ({ name: d.name, value: d.value })) || []
+    });
+
     try {
       // ============================================
       // PHASE 2: Global Middleware Integration
@@ -1074,94 +1083,61 @@ client.on('interactionCreate', async (interaction) => {
 
       // 1️⃣ RUN NEW MIDDLEWARE (Safe mode - all wrapped in try-catch)
       let middlewareResult = null;
-      if (middlewareEnabled) {
-        try {
+      const isOwner = GlobalCommandMiddleware.OWNER_IDS.includes(interaction.user.id);
+      try {
+        if (middlewareEnabled) {
           middlewareResult = await GlobalCommandMiddleware.execute(interaction, commandName);
           if (!middlewareResult.proceed) {
             commandBlockedBy = middlewareResult.reason;
             console.log(`[PHASE2] Middleware blocked command: ${commandBlockedBy}`);
           }
-        } catch (middlewareError) {
-          console.error(`[PHASE2] Middleware error (safe fallback): ${middlewareError.message}`);
-          // Continue with old checks if middleware fails
+        } else {
+          console.log(`[PHASE2] Middleware disabled, skipping (using old checks only)`);
         }
-      } else {
-        console.log(`[PHASE2] Middleware disabled, skipping (using old checks only)`);
+      } catch (middlewareError) {
+        console.error(`[PHASE2] Middleware error (safe fallback): ${middlewareError.message}`);
+        // Continue with old checks if middleware fails
       }
 
-      // 2️⃣ RUN OLD CHECKS (for conflict detection)
-      let oldChecksBlocked = false;
+      console.log(`[PHASE2] User ${interaction.user.id} owner=${isOwner} middlewareProceed=${middlewareResult?.proceed}`);
 
-      // OLD CHECK 2: Maintenance mode from config
+      // 2️⃣ RUN OLD CHECKS (for logging only)
+      let oldChecksBlocked = false;
+      let maintenanceMode = false;
+      let broadcastConfigured = null;
+
       try {
         const configPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'data', 'admin-config.json');
         const config = JSON.parse(readFileSync(configPath, 'utf8'));
-        
-        // Mode maintenance: bloquer tout le monde sauf les whitelistés
-        if (config.maintenanceMode) {
-          const isWhitelisted = await MaintenanceWhitelistService.isWhitelisted(interaction.user.id);
-          
-          if (!isWhitelisted) {
-            oldChecksBlocked = true;
-            
-            // CONFLICT DETECTION
-            if (middlewareResult?.proceed) {
-              middlewareConflict = 'OLD:MAINTENANCE vs NEW:ALLOWED';
-              console.warn(`[CONFLICT] Maintenance blocked but middleware allowed: ${commandName}`);
-            }
-            
-            commandBlockedBy = commandBlockedBy || 'Maintenance (old check)';
-            
-            return interaction.reply({
-              content: '🔴 **Le bot est actuellement en maintenance.** Les commandes sont temporairement désactivées.',
-              flags: 64
-            });
-          }
-          
-          console.log(`[WHITELIST] User ${interaction.user.id} bypassed global maintenance (whitelisted)`);
-        }
+        maintenanceMode = Boolean(config.maintenanceMode);
       } catch (error) {
-        console.error('[MAINTENANCE CHECK] Erreur:', error);
+        console.error('[MAINTENANCE READ] Could not read admin-config:', error.message || error);
       }
 
-      // OLD CHECK 3: Broadcast channel verification
-      const subcommand = interaction.options.getSubcommand(false);
-      
-      if (commandName !== 'broadcast' || subcommand !== 'config') {
-        try {
-          const broadcastChannelId = await getBroadcastChannel(interaction.guildId);
-          if (!broadcastChannelId) {
-            oldChecksBlocked = true;
-            commandBlockedBy = commandBlockedBy || 'Broadcast not configured (old check)';
+      try {
+        const broadcastChannelId = await getBroadcastChannel(interaction.guildId);
+        broadcastConfigured = Boolean(broadcastChannelId);
+      } catch (error) {
+        console.error('[BROADCAST CHECK] Error checking broadcast config:', error.message || error);
+      }
 
-            const embed = new EmbedBuilder()
-              .setColor(0xFF9900)
-              .setTitle('⚠️・CONFIGURATION REQUISE')
-              .setDescription('Pour utiliser ce bot, vous devez d\'abord configurer le channel de broadcast!')
-              .addFields({
-                name: '📝 Pourquoi?',
-                value: 'Le bot envoie les annonces importantes, maintenances et nouvelles fonctionnalités dans ce channel'
-              })
-              .addFields({
-                name: '⚙️ Comment configurer?',
-                value: '1. Créez ou choisissez un channel (ex: #annonces)\n2. Utilisez: `/broadcast config #annonces`\n3. C\'est tout! Le bot sera alors actif'
-              })
-              .addFields({
-                name: '✅ Une fois configuré',
-                value: 'Vous recevrez automatiquement les annonces du bot et pourrez utiliser toutes les commandes'
-              })
-              .setFooter({ text: '✨ Créé par LeBelge_e | Gorille™・BOTS' })
-              .setTimestamp();
+      console.log('[POST-MIDDLEWARE CHECKS]', {
+        userId: interaction.user.id,
+        commandName,
+        isOwner: middlewareResult?.isOwner ?? isOwner,
+        isBypassedUser: middlewareResult?.isBypassedUser,
+        maintenanceMode,
+        broadcastConfigured,
+        middlewareProceed: middlewareResult?.proceed,
+        middlewareReason: middlewareResult?.reason
+      });
 
-            return interaction.reply({ embeds: [embed], flags: 64 });
-          }
-        } catch (error) {
-          console.error('[BROADCAST CHECK ERROR]', error);
-          return interaction.reply({
-            content: '❌ Erreur lors de la vérification de configuration',
-            flags: 64
-          });
-        }
+      if (maintenanceMode && !middlewareResult?.proceed) {
+        console.warn('[AUTH] maintenance mode active, but middleware already handled rejection.');
+      }
+
+      if (broadcastConfigured === false && !middlewareResult?.proceed) {
+        console.warn('[AUTH] broadcast not configured and middleware already handled rejection.');
       }
 
       // 3️⃣ CHECK IF BLOCKED BY MIDDLEWARE
@@ -3615,11 +3591,13 @@ client.on('interactionCreate', async (interaction) => {
       const selectedPlayerId = interaction.values[0];
       const guildId = interaction.guildId;
 
-      // Vérifier permission admin
-      if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
-        return await interaction.reply({
-          content: '❌ Vous devez être **administrateur** pour supprimer des joueurs !'
-        });
+      // Authorization via centralized middleware
+      try {
+        const middlewareResult = await GlobalCommandMiddleware.execute(interaction, 'remove_player');
+        if (!middlewareResult.proceed) return;
+      } catch (e) {
+        console.error('[Middleware] Error during component authorization:', e);
+        return await interaction.reply({ content: '❌ Erreur lors de la vérification des autorisations.' }).catch(() => {});
       }
 
       // Supprimer le joueur par ID

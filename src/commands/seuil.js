@@ -1,5 +1,6 @@
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
-import { getGuildConfig, updateGuildThreshold } from '../utils/guildConfig.js';
+import { getGuildConfig as getFileGuildConfig, updateGuildThreshold } from '../utils/guildConfig.js';
+import { getGuildConfig as getDbGuildConfig, updateGuildConfig } from '../utils/database.js';
 
 // Parser pour convertir "1d", "5h", "1d 12h" en heures
 function parseTimeToHours(timeStr) {
@@ -75,12 +76,7 @@ export const data = new SlashCommandBuilder()
   );
 
 export async function execute(interaction) {
-  // Vérification de permission
-  if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
-    return await interaction.editReply({
-      content: '❌・Vous devez être **administrateur** pour utiliser cette commande !'
-    });
-  }
+  // Authorization handled centrally by GlobalCommandMiddleware
 
   const subcommand = interaction.options.getSubcommand();
 
@@ -101,6 +97,7 @@ export async function execute(interaction) {
       
       // Mettre à jour le seuil pour CE SERVEUR (en heures)
       await updateGuildThreshold(guildId, heures);
+      await updateGuildConfig(guildId, { inactivity_threshold: heures });
 
       const formatted = formatHours(heures);
       
@@ -148,7 +145,14 @@ export async function execute(interaction) {
   } else if (subcommand === 'check') {
     try {
       const guildId = interaction.guildId;
-      const config = getGuildConfig(guildId);
+      const fileConfig = getFileGuildConfig(guildId);
+      const dbConfig = await getDbGuildConfig(guildId);
+      const config = {
+        ...fileConfig,
+        ...dbConfig,
+        alertChannelId: dbConfig.alert_channel_id || fileConfig.alertChannelId,
+        inactivityThreshold: dbConfig.inactivity_threshold || fileConfig.inactivityThreshold
+      };
       const alertChannelId = config?.alertChannelId;
 
       if (!alertChannelId) {
@@ -202,7 +206,13 @@ export async function execute(interaction) {
     }
   } else if (subcommand === 'view') {
     try {
-      const config = getGuildConfig(interaction.guildId);
+      const fileConfig = getFileGuildConfig(interaction.guildId);
+      const dbConfig = await getDbGuildConfig(interaction.guildId);
+      const config = {
+        ...fileConfig,
+        ...dbConfig,
+        inactivityThreshold: dbConfig.inactivity_threshold || fileConfig.inactivityThreshold
+      };
       const seuilHours = config?.inactivityThreshold || 9;
       
       const seuilDisplay = (() => {

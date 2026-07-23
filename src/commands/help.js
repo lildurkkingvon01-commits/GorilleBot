@@ -5,12 +5,7 @@ export const data = new SlashCommandBuilder()
   .setDescription('📚 Affiche la liste des commandes disponibles du bot');
 
 export async function execute(interaction) {
-  // Vérification de permission
-  if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
-    return interaction.reply({
-      content: '❌ Vous devez être **administrateur** pour utiliser cette commande !'
-    });
-  }
+  // Authorization handled centrally by GlobalCommandMiddleware
 
   try {
     // ===== EMBED 1: BIENVENUE & RESTRICTIONS =====
@@ -21,7 +16,7 @@ export async function execute(interaction) {
         iconURL: interaction.client.user.displayAvatarURL({ size: 256 })
       })
       .setTitle('⚠️ RESTRICTIONS IMPORTANTES')
-      .setDescription('**⚠️・TOUTES les commandes du bot NÉCESSITENT les permissions ADMINISTRATEUR**\n\nSeul les administrateurs du serveur peuvent utiliser ce bot.')
+      .setDescription('**⚠️・Toutes les commandes nécessitent l\'autorisation du propriétaire du bot ou d\'un utilisateur en bypass.**\n\nSeuls le propriétaire du bot ou les utilisateurs listés dans le bypass peuvent exécuter les commandes.')
       .setThumbnail(interaction.client.user.displayAvatarURL({ size: 256 }))
       .setFooter({ text: '✨ Créé par LeBelge_e | Gorille™・BOTS', iconURL: interaction.client.user.displayAvatarURL({ size: 256 }) });
 

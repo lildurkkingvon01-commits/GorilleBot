@@ -53,12 +53,7 @@ function createEmbed(players, currentPage, totalPages, userId) {
 }
 
 export async function execute(interaction) {
-  // Vérification de permission
-  if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
-    return interaction.followUp({
-      content: '❌・Vous devez être **administrateur** pour utiliser cette commande !'
-    });
-  }
+  // Authorization handled centrally by GlobalCommandMiddleware
 
   try {
     // Récupérer les données

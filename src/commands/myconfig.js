@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
-import { getGuildConfig, deleteGuildConfig } from '../utils/guildConfig.js';
-import { getCheckFrequency } from '../utils/database.js';
+import { getGuildConfig as getFileGuildConfig, deleteGuildConfig } from '../utils/guildConfig.js';
+import { getCheckFrequency, getGuildConfig as getDbGuildConfig } from '../utils/database.js';
 
 export const data = new SlashCommandBuilder()
   .setName('myconfig')
@@ -17,18 +17,22 @@ export const data = new SlashCommandBuilder()
   );
 
 export async function execute(interaction) {
-  // Vérification de permission
-  if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
-    return await interaction.editReply({
-      content: '❌・Vous devez être **administrateur** pour utiliser cette commande !'
-    });
-  }
+  // Authorization handled centrally by GlobalCommandMiddleware
 
   const subcommand = interaction.options.getSubcommand();
 
   if (subcommand === 'view') {
     try {
-      const config = getGuildConfig(interaction.guildId);
+      const fileConfig = getFileGuildConfig(interaction.guildId);
+      const dbConfig = await getDbGuildConfig(interaction.guildId);
+      const config = {
+        ...fileConfig,
+        ...dbConfig,
+        alertChannelId: dbConfig.alert_channel_id || fileConfig.alertChannelId,
+        monitorChannelId: dbConfig.monitor_channel_id || fileConfig.monitorChannelId,
+        inactivityThreshold: dbConfig.inactivity_threshold || fileConfig.inactivityThreshold,
+        updatedAt: dbConfig.updated_at ? new Date(dbConfig.updated_at).getTime() : fileConfig.updatedAt
+      };
       const frequency = await getCheckFrequency(interaction.guildId);
       
       console.log(`📋・[${interaction.guildId}] Config demandée:`, config);
