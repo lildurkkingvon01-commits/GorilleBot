@@ -1,6 +1,6 @@
 import cron from 'node-cron';
 import { getPlayers, getPlayersByGuild, updatePlayerCheckTime, updateAlertSentTime, getLastAlertTime, updatePlayerStatus, updateLastReconnectionAlert, getLastReconnectionAlertTime, getCheckFrequency, getAllLastCheckTimes, updateLastCheckTime, getBroadcastChannel } from '../utils/database.js';
-import { getGuildConfig, setGuildConfig } from '../utils/guildConfig.js';
+import { getGuildConfig, setGuildConfig, getConfiguredMonitorGuildIds } from '../utils/guildConfig.js';
 import { scrapePactifyProfile, formatDays } from '../utils/scraper.js';
 import { formatInactivityTime, createProgressBar, getColorByStatus, getStatusEmoji } from '../utils/embedFormatter.js';
 import { EmbedBuilder, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
@@ -50,6 +50,7 @@ export async function initCronJobs(discordClient) {
   console.log('🕐 Initialisation des jobs cron...');
   cronJobsEnabled = true;
   console.log('✅ CRON jobs ENABLED');
+  console.log('[MONITOR] Cron scheduler actif, pas de setInterval global par serveur');
 
   // Charger les last_check_time depuis la base de données
   try {
@@ -80,28 +81,23 @@ export async function initCronJobs(discordClient) {
   }
 
   // S'exécute chaque minute pour vérifier si une vérification est nécessaire
-  cron.schedule('* * * * *', async () => {
+  const monitorCronJob = cron.schedule('* * * * *', async () => {
     try {
       await checkInactivityIfNeeded();
     } catch (error) {
-      console.error('[CRON] Error in checkInactivityIfNeeded:', error.message);
+      console.error('[CRON] Error in checkInactivityIfNeeded:', error.stack || error);
     }
   });
-
+  console.log('[MONITOR] Cron schedule créé', { job: String(monitorCronJob) });
   console.log('✓ Jobs cron configurés (vérification chaque minute selon la fréquence par serveur)');
 }
 
 async function checkInactivityIfNeeded() {
   try {
     const players = await getPlayers();
-    
-    if (players.length === 0) {
-      return;
-    }
-
-    // Grouper les joueurs par serveur, ignorer les joueurs sans guildId
     const playersByGuild = {};
     let orphanCount = 0;
+
     for (const player of players) {
       if (!player.guildId) {
         orphanCount++;
@@ -112,37 +108,52 @@ async function checkInactivityIfNeeded() {
       }
       playersByGuild[player.guildId].push(player);
     }
+
     if (orphanCount > 0 && cronJobsEnabled && Object.keys(playersByGuild).length > 0) {
       console.warn(`⚠️ ${orphanCount} joueur(s) sans guildId ignoré(s)`);
     }
 
-    // Vérifier chaque serveur selon sa fréquence
-    for (const guildId in playersByGuild) {
+    const configuredGuildIds = getConfiguredMonitorGuildIds();
+    const guildIdsToUpdate = new Set([...Object.keys(playersByGuild), ...configuredGuildIds]);
+
+    if (guildIdsToUpdate.size === 0) {
+      console.log('[MONITOR] Aucun serveur à mettre à jour ce tick');
+      return;
+    }
+
+    for (const guildId of guildIdsToUpdate) {
       try {
         const frequency = await getCheckFrequency(guildId);
         const lastCheck = guildLastCheckTime[guildId] || 0;
         const now = Date.now();
         const minutesElapsed = (now - lastCheck) / (1000 * 60);
         const nextCheckIn = Math.max(0, frequency - minutesElapsed);
+        const playerCount = playersByGuild[guildId]?.length || 0;
 
-        await updateGuildMonitorMessage(guildId, frequency, nextCheckIn, playersByGuild[guildId].length);
+        console.log(`[MONITOR][${guildId}] cron tick`, {
+          frequency,
+          lastCheck: lastCheck ? new Date(lastCheck).toISOString() : null,
+          minutesElapsed: Number(minutesElapsed.toFixed(3)),
+          nextCheckIn: Number(nextCheckIn.toFixed(3)),
+          playerCount,
+          hasPlayers: !!playersByGuild[guildId],
+          configuredMonitor: configuredGuildIds.includes(guildId)
+        });
 
-        // Vérifier seulement si assez de temps s'est écoulé
+        await updateGuildMonitorMessage(guildId, frequency, nextCheckIn, playerCount);
+
         if (minutesElapsed >= frequency) {
-          console.log(`\n[CRON] 🔄 Vérification pour serveur ${guildId} (fréquence: ${frequency}min)`);
+          console.log(`[CRON] 🔄 Vérification pour serveur ${guildId} (fréquence: ${frequency}min)`);
           guildLastCheckTime[guildId] = now;
-          
-          // Sauvegarder le last check time en base de données
+
           try {
             await updateLastCheckTime(guildId, now);
           } catch (dbErr) {
             console.warn(`⚠️ Impossible de sauvegarder le last check time pour ${guildId}:`, dbErr.message);
           }
 
-          // Effectuer la vérification et récupérer le nombre d'alertes déclenchées
-          const alertsTriggered = await checkInactivityForGuild(playersByGuild[guildId].map(normalizePlayerData));
+          const alertsTriggered = await checkInactivityForGuild((playersByGuild[guildId] || []).map(normalizePlayerData));
 
-          // Envoyer un bref message de confirmation dans le channel de statut si configuré
           try {
             const guildConfig = getGuildConfig(guildId);
             const monitorChannelId = guildConfig?.monitorChannelId;
@@ -151,30 +162,27 @@ async function checkInactivityIfNeeded() {
               if (guildObj) {
                 const ch = await guildObj.channels.fetch(monitorChannelId).catch(() => null);
                 if (ch && ch.type === ChannelType.GuildText) {
-                  const playersChecked = Array.isArray(playersByGuild[guildId]) ? playersByGuild[guildId].length : 0;
-                  await ch.send(`✅ Vérification effectuée — ${playersChecked} joueur(s) vérifié(s), ${alertsTriggered || 0} alerte(s)`).catch(() => null);
+                  await ch.send(`✅ Vérification effectuée — ${playerCount} joueur(s) vérifié(s), ${alertsTriggered || 0} alerte(s)`).catch(() => null);
                 }
               }
             }
           } catch (err) {
-            // ignore errors sending confirmation
+            console.error(`[MONITOR][${guildId}] erreur envoi confirmation`, err.stack || err);
           }
 
-          // Mettre à jour immédiatement le message de statut pour réinitialiser le timer
           try {
-            await updateGuildMonitorMessage(guildId, frequency, 0, playersByGuild[guildId].length);
+            await updateGuildMonitorMessage(guildId, frequency, 0, playerCount);
           } catch (err) {
-            // ignore
+            console.error(`[MONITOR][${guildId}] erreur update message après vérification`, err.stack || err);
           }
         }
       } catch (error) {
-        console.error(`❌ Erreur vérification pour serveur ${guildId}:`, error);
+        console.error(`❌ Erreur vérification pour serveur ${guildId}:`, error.stack || error);
       }
     }
   } catch (err) {
-    // Silently fail if error is during startup phase
-    if (!err.message.includes('buffering timed out')) {
-      console.error('[CRON] Unexpected error:', err.message);
+    if (!err.message?.includes('buffering timed out')) {
+      console.error('[CRON] Unexpected error:', err.stack || err);
     }
   }
 }
@@ -193,14 +201,23 @@ export async function updateGuildMonitorMessage(guildId, frequency, nextCheckIn,
   try {
     const guildConfig = getGuildConfig(guildId);
     const monitorChannelId = guildConfig?.monitorChannelId;
-    if (!monitorChannelId) return;
+    if (!monitorChannelId) {
+      console.log(`[MONITOR][${guildId}] skip update - no monitorChannelId configured`);
+      return;
+    }
 
     const guild = client.guilds.cache.get(guildId);
-    if (!guild) return;
+    if (!guild) {
+      console.log(`[MONITOR][${guildId}] skip update - guild not in cache`);
+      return;
+    }
 
-    const channel = await guild.channels.fetch(monitorChannelId).catch(() => null);
+    const channel = await guild.channels.fetch(monitorChannelId).catch((err) => {
+      console.error(`[MONITOR][${guildId}] failed to fetch monitor channel`, err.stack || err);
+      return null;
+    });
     if (!channel || channel.type !== ChannelType.GuildText) {
-      console.warn(`⚠️ Channel de statut introuvable ou invalide pour le serveur ${guildId}`);
+      console.warn(`⚠️ [MONITOR][${guildId}] channel de statut introuvable ou invalide: ${monitorChannelId}`);
       return;
     }
 
@@ -235,6 +252,7 @@ export async function updateGuildMonitorMessage(guildId, frequency, nextCheckIn,
     const nextCheckLabel = minutesRemaining === 0 ? 'Maintenant' : `${minutesRemaining}m`;
     const guildName = guild.name || guildId;
 
+    const prevState = monitorMessageStates[guildId];
     const newState = buildMonitorState({
       playerCount,
       frequency,
@@ -242,6 +260,20 @@ export async function updateGuildMonitorMessage(guildId, frequency, nextCheckIn,
       thresholdDisplay,
       alertChannelId: guildConfig.alertChannelId,
       monitorChannelId
+    });
+
+    console.log(`[MONITOR][${guildId}] updateGuildMonitorMessage`, {
+      guildName,
+      monitorChannelId,
+      monitorMessageId: guildConfig.monitorMessageId,
+      playerCount,
+      frequency,
+      lastCheck: lastCheck ? new Date(lastCheck).toISOString() : null,
+      secondsElapsed,
+      secondsRemaining,
+      minutesRemaining,
+      nextCheckLabel,
+      prevLabel: prevState?.nextCheckLabel || null
     });
 
     const embed = new EmbedBuilder()
@@ -266,13 +298,32 @@ export async function updateGuildMonitorMessage(guildId, frequency, nextCheckIn,
 
     if (message) {
       if (shouldUpdateMonitorMessage(guildId, newState)) {
-        await message.edit({ embeds: [embed] }).catch(() => null);
-        monitorMessageStates[guildId] = newState;
+        try {
+          await message.edit({ embeds: [embed] });
+          monitorMessageStates[guildId] = newState;
+          console.log(`[MONITOR][${guildId}] message edited successfully`, {
+            oldLabel: prevState?.nextCheckLabel || null,
+            newLabel: newState.nextCheckLabel
+          });
+        } catch (editError) {
+          console.error(`[MONITOR][${guildId}] message.edit failed`, editError.stack || editError);
+          console.log(`[MONITOR][${guildId}] state cache preserved until next successful edit`);
+        }
+      } else {
+        console.log(`[MONITOR][${guildId}] skipped edit; state unchanged`, {
+          oldLabel: prevState?.nextCheckLabel,
+          newLabel: newState.nextCheckLabel
+        });
       }
     } else {
-      message = await channel.send({ embeds: [embed] });
-      await setGuildConfig(guildId, guildConfig.alertChannelId, { monitorChannelId, monitorMessageId: message.id });
-      monitorMessageStates[guildId] = newState;
+      try {
+        message = await channel.send({ embeds: [embed] });
+        await setGuildConfig(guildId, guildConfig.alertChannelId, { monitorChannelId, monitorMessageId: message.id });
+        monitorMessageStates[guildId] = newState;
+        console.log(`[MONITOR][${guildId}] monitor message created`, { monitorMessageId: message.id });
+      } catch (createError) {
+        console.error(`[MONITOR][${guildId}] failed to create monitor message`, createError.stack || createError);
+      }
     }
   } catch (error) {
     console.error(`❌ Erreur lors de la mise à jour du message de statut pour ${guildId}:`, error.message);

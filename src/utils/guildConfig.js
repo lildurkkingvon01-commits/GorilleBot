@@ -167,6 +167,26 @@ export async function setGuildWebKey(guildId, webKey) {
   });
 }
 
+export function getConfiguredMonitorGuildIds() {
+  try {
+    const files = fs.readdirSync(CONFIG_DIR);
+    const guildIds = [];
+    for (const file of files) {
+      if (!file.endsWith('.json')) continue;
+      const configPath = path.join(CONFIG_DIR, file);
+      const data = fs.readFileSync(configPath, 'utf-8');
+      const config = JSON.parse(data);
+      if (config?.monitorChannelId) {
+        guildIds.push(config.guildId || path.basename(file, '.json'));
+      }
+    }
+    return guildIds;
+  } catch (error) {
+    console.error('Erreur lecture des guilds monitorées:', error);
+    return [];
+  }
+}
+
 export function getGuildByWebKey(webKey) {
   try {
     // Lire tous les fichiers de config et trouver celui avec la clé
