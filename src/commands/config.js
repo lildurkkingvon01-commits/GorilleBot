@@ -104,9 +104,21 @@ export async function execute(interaction) {
     }
 
     // Sauvegarder la configuration du serveur
-    const savedConfig = await setGuildConfig(interaction.guildId, channel?.id, {
+    const alertChannelId = channel ? channel.id : undefined;
+    const savedConfig = await setGuildConfig(interaction.guildId, alertChannelId, {
       monitorChannelId: statusChannel ? statusChannel.id : undefined
     });
+
+    // Actualiser immédiatement le message de statut si un channel est défini
+    if (statusChannel) {
+      try {
+        const players = await getPlayersByGuild(interaction.guildId);
+        const playerCount = Array.isArray(players) ? players.length : 0;
+        await updateGuildMonitorMessage(interaction.guildId, savedConfig.checkFrequency || 30, 0, playerCount);
+      } catch (err) {
+        console.warn(`⚠️ Impossible d'initialiser le message de statut pour ${interaction.guildId}:`, err.message);
+      }
+    }
 
     // Gérer l'option DM si fournie
     const dmOption = interaction.options.getString('dm');

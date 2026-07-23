@@ -248,6 +248,25 @@ export async function initializeDatabase() {
     await db.none('CREATE INDEX IF NOT EXISTS idx_command_logs_command_name ON command_logs(command_name)');
     await db.none('CREATE INDEX IF NOT EXISTS idx_command_logs_created_at ON command_logs(created_at)');
 
+    // Stats table for command usage tracking
+    await db.none(`CREATE TABLE IF NOT EXISTS guild_stats (
+      id SERIAL PRIMARY KEY,
+      guild_id VARCHAR(255) NOT NULL,
+      command_name VARCHAR(100) NOT NULL,
+      stat_date DATE NOT NULL,
+      execution_count INTEGER DEFAULT 0,
+      total_execution_time_ms INTEGER DEFAULT 0,
+      min_execution_ms INTEGER,
+      max_execution_ms INTEGER,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(guild_id, command_name, stat_date)
+    )`);
+    await db.none('CREATE INDEX IF NOT EXISTS idx_guild_stats_guild_id ON guild_stats(guild_id)');
+    await db.none('CREATE INDEX IF NOT EXISTS idx_guild_stats_command_name ON guild_stats(command_name)');
+    await db.none('CREATE INDEX IF NOT EXISTS idx_guild_stats_stat_date ON guild_stats(stat_date)');
+    await db.none('CREATE INDEX IF NOT EXISTS idx_guild_stats_composite ON guild_stats(guild_id, stat_date)');
+
     // Many other tables omitted here for brevity; existing logic preserved
 
     console.log('✅ Database tables initialized');
