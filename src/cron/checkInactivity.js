@@ -8,7 +8,7 @@ import { EmbedBuilder, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle
 let client;
 let cronJobsEnabled = false; // CRITICAL: Disable CRON during startup phase
 const guildLastCheckTime = {}; // Track last check time per guild
-const monitorIntervals = {}; // per-guild intervals for live countdown
+const monitorMessageStates = {}; // Track last rendered state to avoid redundant message edits
 
 function normalizePlayerData(player) {
   return {
@@ -19,6 +19,30 @@ function normalizePlayerData(player) {
     playerImageUrl: player.playerImageUrl || player.image_url || null,
     playerRole: player.playerRole || player.role || null
   };
+}
+
+function buildMonitorState({ playerCount, frequency, nextCheckLabel, thresholdDisplay, alertChannelId, monitorChannelId }) {
+  return {
+    playerCount,
+    frequency,
+    nextCheckLabel,
+    thresholdDisplay,
+    alertChannelId,
+    monitorChannelId
+  };
+}
+
+function shouldUpdateMonitorMessage(guildId, newState) {
+  const prev = monitorMessageStates[guildId];
+  if (!prev) return true;
+  return (
+    prev.playerCount !== newState.playerCount ||
+    prev.frequency !== newState.frequency ||
+    prev.nextCheckLabel !== newState.nextCheckLabel ||
+    prev.thresholdDisplay !== newState.thresholdDisplay ||
+    prev.alertChannelId !== newState.alertChannelId ||
+    prev.monitorChannelId !== newState.monitorChannelId
+  );
 }
 
 export async function initCronJobs(discordClient) {
@@ -191,7 +215,6 @@ export async function updateGuildMonitorMessage(guildId, frequency, nextCheckIn,
       return `${thresholdHours}h`;
     })();
 
-    // Compute seconds remaining until next check using guildLastCheckTime
     const freqSeconds = Math.max(1, Math.floor((frequency || 1) * 60));
     const lastCheck = guildLastCheckTime[guildId] || 0;
     const now = Date.now();
@@ -208,14 +231,18 @@ export async function updateGuildMonitorMessage(guildId, frequency, nextCheckIn,
       secondsRemaining = freqSeconds;
     }
 
-    const formatRemaining = (s) => {
-      if (s <= 0) return 'Maintenant';
-      const m = Math.floor(s / 60);
-      const sec = s % 60;
-      return m > 0 ? `${m}m ${sec}s` : `${sec}s`;
-    };
-    const nextCheckLabel = formatRemaining(secondsRemaining);
+    const minutesRemaining = Math.max(0, Math.ceil(secondsRemaining / 60));
+    const nextCheckLabel = minutesRemaining === 0 ? 'Maintenant' : `${minutesRemaining}m`;
     const guildName = guild.name || guildId;
+
+    const newState = buildMonitorState({
+      playerCount,
+      frequency,
+      nextCheckLabel,
+      thresholdDisplay,
+      alertChannelId: guildConfig.alertChannelId,
+      monitorChannelId
+    });
 
     const embed = new EmbedBuilder()
       .setColor(0x3498db)
@@ -238,92 +265,17 @@ export async function updateGuildMonitorMessage(guildId, frequency, nextCheckIn,
     }
 
     if (message) {
-      await message.edit({ embeds: [embed] }).catch(() => null);
+      if (shouldUpdateMonitorMessage(guildId, newState)) {
+        await message.edit({ embeds: [embed] }).catch(() => null);
+        monitorMessageStates[guildId] = newState;
+      }
     } else {
       message = await channel.send({ embeds: [embed] });
       await setGuildConfig(guildId, guildConfig.alertChannelId, { monitorChannelId, monitorMessageId: message.id });
-    }
-
-    // Start a per-guild interval to update the countdown every second
-    try {
-      // Clear existing interval if any
-      if (monitorIntervals[guildId]) {
-        clearInterval(monitorIntervals[guildId].id);
-      }
-
-      // Determine initial target time (ms since epoch)
-      const nowBase = Date.now();
-      const initialTarget = lastCheck && lastCheck > 0 ? (lastCheck + freqSeconds * 1000) : (nowBase + secondsRemaining * 1000);
-
-      // Store interval id + targetTime so it can be updated/cleared later
-      const intervalId = setInterval(async () => {
-        try {
-          // If a real lastCheck exists, prefer that target (keeps in sync after an actual run)
-          const last = guildLastCheckTime[guildId] || 0;
-          const targetTime = last && last > 0 ? (last + freqSeconds * 1000) : monitorIntervals[guildId]?.targetTime || initialTarget;
-
-          const remainingSec = Math.max(0, Math.ceil((targetTime - Date.now()) / 1000));
-
-          // If timer reached zero, trigger an immediate check and reset the target
-          if (remainingSec <= 0) {
-            const lastRun = guildLastCheckTime[guildId] || 0;
-            // prevent rapid re-triggers
-            if (!lastRun || (Date.now() - lastRun) >= 1000) {
-              const checkTime = Date.now();
-              guildLastCheckTime[guildId] = checkTime;
-              
-              // Sauvegarder en base de données
-              try {
-                await updateLastCheckTime(guildId, checkTime);
-              } catch (dbErr) {
-                console.warn(`⚠️ Impossible de sauvegarder le last check time pour ${guildId}:`, dbErr.message);
-              }
-              
-              try {
-                const playersList = await getPlayersByGuild(guildId);
-                await checkInactivityForGuild((playersList || []).map(normalizePlayerData));
-              } catch (runErr) {
-                // ignore run error
-              }
-
-              // reset target time after run
-              monitorIntervals[guildId].targetTime = Date.now() + freqSeconds * 1000;
-            }
-          }
-
-          // recompute remaining/label based on possibly-updated targetTime
-          const currentTarget = monitorIntervals[guildId]?.targetTime || targetTime;
-          const newRemaining = Math.max(0, Math.ceil((currentTarget - Date.now()) / 1000));
-          const label = formatRemaining(newRemaining);
-
-          const updatedEmbed = EmbedBuilder.from(embed).setFields(
-            { name: '📊 Joueurs surveillés', value: `\n\`${playerCount} joueur(s)\``, inline: true },
-            { name: '⏱️ Seuil', value: `\`${thresholdDisplay}\``, inline: true },
-            { name: '🔁 Fréquence', value: `\`${frequency} minutes\``, inline: true },
-            { name: '⌛ Prochaine vérif', value: `\`${label}\``, inline: true },
-            { name: '📢 Channel d\'alerte', value: guildConfig.alertChannelId ? `<#${guildConfig.alertChannelId}>` : '`Aucun`', inline: true },
-            { name: '📰 Channel de statut', value: `<#${monitorChannelId}>`, inline: true }
-          ).setTimestamp();
-
-          await message.edit({ embeds: [updatedEmbed] }).catch(() => null);
-        } catch (e) {
-          // ignore per-tick errors
-        }
-      }, 1000);
-
-      monitorIntervals[guildId] = { id: intervalId, targetTime: initialTarget };
-    } catch (err) {
-      // ignore interval failures
+      monitorMessageStates[guildId] = newState;
     }
   } catch (error) {
     console.error(`❌ Erreur lors de la mise à jour du message de statut pour ${guildId}:`, error.message);
-  }
-}
-
-export function clearMonitorInterval(guildId) {
-  if (monitorIntervals[guildId]) {
-    clearInterval(monitorIntervals[guildId]);
-    delete monitorIntervals[guildId];
   }
 }
 

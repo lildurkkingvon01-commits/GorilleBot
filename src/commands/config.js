@@ -114,7 +114,8 @@ export async function execute(interaction) {
       try {
         const players = await getPlayersByGuild(interaction.guildId);
         const playerCount = Array.isArray(players) ? players.length : 0;
-        await updateGuildMonitorMessage(interaction.guildId, savedConfig.checkFrequency || 30, 0, playerCount);
+        const frequency = await getCheckFrequency(interaction.guildId);
+        await updateGuildMonitorMessage(interaction.guildId, frequency, 0, playerCount);
       } catch (err) {
         console.warn(`⚠️ Impossible d'initialiser le message de statut pour ${interaction.guildId}:`, err.message);
       }
