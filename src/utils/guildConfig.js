@@ -26,6 +26,7 @@ function getDefaultConfig(guildId) {
     guildId,
     alertChannelId: null,
     monitorChannelId: null,
+    summaryChannelId: null,
     monitorMessageId: null,
     alertsViaDM: false,
     inactivityThreshold: 9,
@@ -78,6 +79,9 @@ export async function setGuildConfig(guildId, alertChannelId, options = {}) {
       }
       if (options.monitorChannelId !== undefined) {
         config.monitorChannelId = options.monitorChannelId;
+      }
+      if (options.summaryChannelId !== undefined) {
+        config.summaryChannelId = options.summaryChannelId;
       }
       if (options.monitorMessageId !== undefined) {
         config.monitorMessageId = options.monitorMessageId;

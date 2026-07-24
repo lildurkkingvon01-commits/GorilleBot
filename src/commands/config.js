@@ -24,6 +24,12 @@ export const data = new SlashCommandBuilder()
       .setDescription('Le channel où afficher le message d\'état et le temps avant le prochain check')
       .setRequired(false)
   )
+  .addChannelOption(option =>
+    option
+      .setName('summarychannel')
+      .setDescription('Le channel où envoyer le résumé des vérifications automatiques')
+      .setRequired(false)
+  )
   .addStringOption(option =>
     option
       .setName('channelid')
@@ -74,11 +80,12 @@ export async function execute(interaction) {
     }
 
     const statusChannel = interaction.options.getChannel('statuschannel', false);
+    const summaryChannel = interaction.options.getChannel('summarychannel', false);
 
     // Vérifier qu'on a au moins un channel configuré
-    if (!channel && !statusChannel) {
+    if (!channel && !statusChannel && !summaryChannel) {
       return interaction.editReply({
-        content: '❌ Tu dois choisir un channel d\'alerte ou un channel de statut !'
+        content: '❌ Tu dois choisir un channel d\'alerte, de statut ou de résumé !'
       });
     }
 
@@ -92,6 +99,11 @@ export async function execute(interaction) {
     if (statusChannel && statusChannel.type !== ChannelType.GuildText) {
       return interaction.editReply({
         content: '❌ Le channel de statut n\'est pas un canal texte! Sélectionne un canal #text.'
+      });
+    }
+    if (summaryChannel && summaryChannel.type !== ChannelType.GuildText) {
+      return interaction.editReply({
+        content: '❌ Le channel de résumé n\'est pas un canal texte! Sélectionne un canal #text.'
       });
     }
 
@@ -111,13 +123,15 @@ export async function execute(interaction) {
     // Sauvegarder la configuration du serveur
     const alertChannelId = channel ? channel.id : undefined;
     const savedConfig = await setGuildConfig(interaction.guildId, alertChannelId, {
-      monitorChannelId: statusChannel ? statusChannel.id : undefined
+      monitorChannelId: statusChannel ? statusChannel.id : undefined,
+      summaryChannelId: summaryChannel ? summaryChannel.id : undefined
     });
 
     try {
       await updateGuildConfig(interaction.guildId, {
         alert_channel_id: alertChannelId,
-        monitor_channel_id: statusChannel ? statusChannel.id : undefined
+        monitor_channel_id: statusChannel ? statusChannel.id : undefined,
+        summary_channel_id: summaryChannel ? summaryChannel.id : undefined
       });
     } catch (err) {
       console.warn(`[CONFIG] Impossible de synchroniser la config du serveur ${interaction.guildId} en base:`, err.message || err);
@@ -146,6 +160,7 @@ export async function execute(interaction) {
     const dmStatus = !dmOption_value ? '(inchangé)' : dmOption_value === 'on' ? '✅ Activé' : '❌ Désactivé';
     const alertChannelDisplay = channel ? `<#${channel.id}>` : (savedConfig.alertChannelId ? `<#${savedConfig.alertChannelId}>` : '`Aucun`');
     const statusChannelDisplay = statusChannel ? `<#${statusChannel.id}>` : (savedConfig.monitorChannelId ? `<#${savedConfig.monitorChannelId}>` : '`Aucun`');
+    const summaryChannelDisplay = summaryChannel ? `<#${summaryChannel.id}>` : (savedConfig.summaryChannelId ? `<#${savedConfig.summaryChannelId}>` : '`Aucun`');
 
     const embed = createSuccessPreset(interaction.client, {
       title: '✅ Configuration Mise à Jour',
@@ -154,7 +169,8 @@ export async function execute(interaction) {
         { name: '━━━━━ 📢 ALERTES 📢 ━━━━━', value: ' ', inline: false },
         { name: '📢・Channel d\'alerte', value: alertChannelDisplay, inline: true },
         { name: '📍・Channel de statut', value: statusChannelDisplay, inline: true },
-        { name: '📨・Alertes DM', value: dmStatus, inline: true },
+        { name: '�・Channel de résumé', value: summaryChannelDisplay, inline: true },
+        { name: '�📨・Alertes DM', value: dmStatus, inline: true },
         { name: '🛡️・Serveur', value: `${interaction.guild.name}`, inline: true },
         { name: '━━━━━ 📝 DÉTAILS 📝 ━━━━━', value: ' ', inline: false },
         { name: '✅・Résumé', value: `${alertChannelDisplay !== '`Aucun`' ? `Les alertes d'inactivité seront envoyées dans ${alertChannelDisplay}\n` : ''}${statusChannelDisplay !== '`Aucun`' ? `Le message de statut sera affiché dans ${statusChannelDisplay}\n` : ''}${dmOption_value ? `Notifications DM des joueurs: ${dmStatus}` : 'Notifications DM: pas modifiées'}`, inline: false },

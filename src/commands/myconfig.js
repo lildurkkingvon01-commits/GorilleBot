@@ -54,7 +54,12 @@ export async function execute(interaction) {
         .addFields(
           {
             name: '📢・__Channel d\'alerte__',
-            value: `<#${config.alertChannelId}>`,
+            value: config.alertChannelId ? `<#${config.alertChannelId}>` : '`Aucun`',
+            inline: true
+          },
+          {
+            name: '📰・__Channel de résumé__',
+            value: config.summaryChannelId ? `<#${config.summaryChannelId}>` : '`Aucun`',
             inline: true
           },
           {

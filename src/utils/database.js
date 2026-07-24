@@ -120,6 +120,7 @@ export async function updateGuildConfig(guildId, updates) {
     if (updates.alert_channel_id !== undefined) { f.push(`alert_channel_id = $${p++}`); v.push(updates.alert_channel_id); }
     if (updates.monitor_channel_id !== undefined) { f.push(`monitor_channel_id = $${p++}`); v.push(updates.monitor_channel_id); }
     if (updates.monitor_message_id !== undefined) { f.push(`monitor_message_id = $${p++}`); v.push(updates.monitor_message_id); }
+    if (updates.summary_channel_id !== undefined) { f.push(`summary_channel_id = $${p++}`); v.push(updates.summary_channel_id); }
     if (updates.command_permissions !== undefined) { f.push(`command_permissions = $${p++}`); v.push(updates.command_permissions); }
 
     if (f.length === 0) return null;
@@ -134,20 +135,23 @@ export async function updateGuildConfig(guildId, updates) {
       try {
         const safe = { ...updates };
         delete safe.alert_channel_id;
+        delete safe.summary_channel_id;
 
         const f2 = [], v2 = [];
         let p2 = 1;
         if (safe.inactivity_threshold !== undefined) { f2.push(`inactivity_threshold = $${p2++}`); v2.push(safe.inactivity_threshold); }
         if (safe.check_frequency !== undefined) { f2.push(`check_frequency = $${p2++}`); v2.push(safe.check_frequency); }
         if (safe.broadcast_channel_id !== undefined) { f2.push(`broadcast_channel_id = $${p2++}`); v2.push(safe.broadcast_channel_id); }
+        if (safe.alert_channel_id !== undefined) { f2.push(`alert_channel_id = $${p2++}`); v2.push(safe.alert_channel_id); }
         if (safe.monitor_channel_id !== undefined) { f2.push(`monitor_channel_id = $${p2++}`); v2.push(safe.monitor_channel_id); }
         if (safe.monitor_message_id !== undefined) { f2.push(`monitor_message_id = $${p2++}`); v2.push(safe.monitor_message_id); }
+        if (safe.summary_channel_id !== undefined) { f2.push(`summary_channel_id = $${p2++}`); v2.push(safe.summary_channel_id); }
         if (safe.command_permissions !== undefined) { f2.push(`command_permissions = $${p2++}`); v2.push(safe.command_permissions); }
 
         if (f2.length === 0) return null;
         v2.push(guildId);
         const query2 = `UPDATE guild_configs SET ${f2.join(", ")} WHERE guild_id = $${p2} RETURNING *`;
-        console.log('[DB] updateGuildConfig retrying without alert_channel_id');
+        console.log('[DB] updateGuildConfig retrying without missing columns');
         return await db.one(query2, v2);
       } catch (retryErr) {
         console.error('[DB ERROR] updateGuildConfig retry failed:', retryErr);

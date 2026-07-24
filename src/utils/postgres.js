@@ -245,6 +245,7 @@ export async function initializeDatabase() {
     try { await db.none('ALTER TABLE guild_configs ADD COLUMN IF NOT EXISTS last_check_time TIMESTAMP'); } catch (e) {}
     try { await db.none('ALTER TABLE guild_configs ADD COLUMN IF NOT EXISTS monitor_message_id VARCHAR(255)'); await db.none('ALTER TABLE guild_configs ADD COLUMN IF NOT EXISTS monitor_channel_id VARCHAR(255)'); } catch (e) {}
     try { await db.none('ALTER TABLE guild_configs ADD COLUMN IF NOT EXISTS alert_channel_id VARCHAR(255)'); } catch (e) {}
+    try { await db.none('ALTER TABLE guild_configs ADD COLUMN IF NOT EXISTS summary_channel_id VARCHAR(255)'); } catch (e) {}
 
     // Command Logs
     await db.none(`CREATE TABLE IF NOT EXISTS command_logs ( id SERIAL PRIMARY KEY, command_name VARCHAR(50) NOT NULL, user_id VARCHAR(255) NOT NULL, username VARCHAR(100), guild_id VARCHAR(255), guild_name VARCHAR(100), arguments TEXT, success BOOLEAN DEFAULT TRUE, error_message TEXT, execution_time_ms INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP )`);

@@ -14,6 +14,7 @@ async function getGuildConfig(guildId) {
     ...dbConfig,
     monitorChannelId: dbConfig.monitor_channel_id || fileConfig.monitorChannelId,
     monitorMessageId: dbConfig.monitor_message_id || fileConfig.monitorMessageId,
+    summaryChannelId: dbConfig.summary_channel_id || fileConfig.summaryChannelId,
     alertChannelId: dbConfig.alert_channel_id || fileConfig.alertChannelId,
     inactivityThreshold: dbConfig.inactivity_threshold || fileConfig.inactivityThreshold
   };
@@ -35,14 +36,15 @@ function normalizePlayerData(player) {
   };
 }
 
-function buildMonitorState({ playerCount, frequency, nextCheckLabel, thresholdDisplay, alertChannelId, monitorChannelId }) {
+function buildMonitorState({ playerCount, frequency, nextCheckLabel, thresholdDisplay, alertChannelId, monitorChannelId, summaryChannelId }) {
   return {
     playerCount,
     frequency,
     nextCheckLabel,
     thresholdDisplay,
     alertChannelId,
-    monitorChannelId
+    monitorChannelId,
+    summaryChannelId
   };
 }
 
@@ -55,22 +57,19 @@ function shouldUpdateMonitorMessage(guildId, newState) {
     prev.nextCheckLabel !== newState.nextCheckLabel ||
     prev.thresholdDisplay !== newState.thresholdDisplay ||
     prev.alertChannelId !== newState.alertChannelId ||
-    prev.monitorChannelId !== newState.monitorChannelId
+    prev.monitorChannelId !== newState.monitorChannelId ||
+    prev.summaryChannelId !== newState.summaryChannelId
   );
 }
 
 export async function initCronJobs(discordClient) {
   client = discordClient;
-  console.log('🕐 Initialisation des jobs cron...');
   cronJobsEnabled = true;
-  console.log('✅ CRON jobs ENABLED');
-  console.log('[MONITOR] Cron scheduler actif, pas de setInterval global par serveur');
 
   // Charger les last_check_time depuis la base de données
   try {
     const lastCheckTimes = await getAllLastCheckTimes();
     Object.assign(guildLastCheckTime, lastCheckTimes);
-    console.log('[CRON] ✅ Last check times restaurés depuis la base de données:', Object.keys(lastCheckTimes).length, 'guild(s)');
     
     // Restaurer les timers pour TOUS les guilds (même sans players valides)
     for (const guildId of Object.keys(lastCheckTimes)) {
@@ -84,7 +83,7 @@ export async function initCronJobs(discordClient) {
         // Restaurer le timer visuel
         await updateGuildMonitorMessage(guildId, frequency, nextCheckIn, 0);
         if (nextCheckIn > 0) {
-          console.log(`[CRON] ✅ Timer restauré pour guild ${guildId} (${nextCheckIn.toFixed(1)}min restantes)`);
+          // Timer visuel restauré sans log de debug
         }
       } catch (err) {
         // Silent fail if guild not accessible
@@ -102,8 +101,6 @@ export async function initCronJobs(discordClient) {
       console.error('[CRON] Error in checkInactivityIfNeeded:', error.stack || error);
     }
   });
-  console.log('[MONITOR] Cron schedule créé', { job: String(monitorCronJob) });
-  console.log('✓ Jobs cron configurés (vérification chaque minute selon la fréquence par serveur)');
 }
 
 async function checkInactivityIfNeeded() {
@@ -133,15 +130,8 @@ async function checkInactivityIfNeeded() {
     const guildIdsToUpdate = new Set([...Object.keys(playersByGuild), ...configuredGuildIds]);
 
     if (guildIdsToUpdate.size === 0) {
-      console.log('[MONITOR] Aucun serveur à mettre à jour ce tick');
       return;
     }
-
-    console.log('[MONITOR] configured guild ids', {
-      fileConfiguredGuildIds,
-      dbConfiguredGuildIds,
-      mergedConfiguredGuildIds: configuredGuildIds
-    });
 
     for (const guildId of guildIdsToUpdate) {
       try {
@@ -151,21 +141,12 @@ async function checkInactivityIfNeeded() {
         const minutesElapsed = (now - lastCheck) / (1000 * 60);
         const nextCheckIn = Math.max(0, frequency - minutesElapsed);
         const playerCount = playersByGuild[guildId]?.length || 0;
-
-        console.log(`[MONITOR][${guildId}] cron tick`, {
-          frequency,
-          lastCheck: lastCheck ? new Date(lastCheck).toISOString() : null,
-          minutesElapsed: Number(minutesElapsed.toFixed(3)),
-          nextCheckIn: Number(nextCheckIn.toFixed(3)),
-          playerCount,
-          hasPlayers: !!playersByGuild[guildId],
-          configuredMonitor: configuredGuildIds.includes(guildId)
-        });
+        const guildConfig = await getGuildConfig(guildId);
+        const thresholdHours = guildConfig?.inactivityThreshold || parseInt(process.env.INACTIVITY_THRESHOLD) || 9;
 
         await updateGuildMonitorMessage(guildId, frequency, nextCheckIn, playerCount);
 
         if (minutesElapsed >= frequency) {
-          console.log(`[CRON] 🔄 Vérification pour serveur ${guildId} (fréquence: ${frequency}min)`);
           guildLastCheckTime[guildId] = now;
 
           try {
@@ -174,22 +155,12 @@ async function checkInactivityIfNeeded() {
             console.warn(`⚠️ Impossible de sauvegarder le last check time pour ${guildId}:`, dbErr.message);
           }
 
-          const alertsTriggered = await checkInactivityForGuild((playersByGuild[guildId] || []).map(normalizePlayerData));
+          const result = await runInactivityCheckForGuild(guildId);
 
           try {
-            const guildConfig = await getGuildConfig(guildId);
-            const monitorChannelId = guildConfig?.monitorChannelId;
-            if (monitorChannelId) {
-              const guildObj = client.guilds.cache.get(guildId);
-              if (guildObj) {
-                const ch = await guildObj.channels.fetch(monitorChannelId).catch(() => null);
-                if (ch && ch.type === ChannelType.GuildText) {
-                  await ch.send(`✅ Vérification effectuée — ${playerCount} joueur(s) vérifié(s), ${alertsTriggered || 0} alerte(s)`).catch(() => null);
-                }
-              }
-            }
+            await sendVerificationSummary(guildId, result);
           } catch (err) {
-            console.error(`[MONITOR][${guildId}] erreur envoi confirmation`, err.stack || err);
+            console.error(`[MONITOR][${guildId}] erreur envoi summary`, err.stack || err);
           }
 
           try {
@@ -209,14 +180,44 @@ async function checkInactivityIfNeeded() {
   }
 }
 
-export async function runManualInactivityCheck(guildId) {
+export async function runInactivityCheckForGuild(guildId) {
   const players = await getPlayersByGuild(guildId);
   if (!players || players.length === 0) {
     return { success: false, playersChecked: 0, alertsTriggered: 0 };
   }
 
   const alertsTriggered = await checkInactivityForGuild(players.map(normalizePlayerData));
-  return { success: true, playersChecked: players.length, alertsTriggered };
+  return { success: true, playersChecked: players.length, alertsTriggered: alertsTriggered || 0 };
+}
+
+async function sendVerificationSummary(guildId, { playersChecked = 0, alertsTriggered = 0 } = {}) {
+  try {
+    if (!client) return;
+    const guildConfig = await getGuildConfig(guildId);
+    const summaryChannelId = guildConfig?.summaryChannelId;
+    if (!summaryChannelId) return;
+
+    const guildObj = client.guilds.cache.get(guildId);
+    if (!guildObj) return;
+
+    const channel = await guildObj.channels.fetch(summaryChannelId).catch(() => null);
+    if (!channel || channel.type !== ChannelType.GuildText) return;
+
+    const summaryEmbed = new EmbedBuilder()
+      .setTitle('✅ Vérification effectuée')
+      .setDescription(`\`${playersChecked} joueur(s)\` vérifiés\n\`${alertsTriggered} alerte(s)\` envoyées`)
+      .setTimestamp();
+
+    await channel.send({ embeds: [summaryEmbed] }).catch(() => null);
+  } catch (error) {
+    console.error(`[SUMMARY][${guildId}] impossible d'envoyer le résumé de vérification:`, error.stack || error);
+  }
+}
+
+export async function runManualInactivityCheck(guildId) {
+  const result = await runInactivityCheckForGuild(guildId);
+  await sendVerificationSummary(guildId, result).catch(() => null);
+  return result;
 }
 
 export async function updateGuildMonitorMessage(guildId, frequency, nextCheckIn, playerCount) {
@@ -235,36 +236,26 @@ export async function updateGuildMonitorMessage(guildId, frequency, nextCheckIn,
     };
 
     if (!monitorChannelId) {
-      console.log(`[MONITOR][${guildId}] skip update - no monitorChannelId configured`);
       return;
     }
 
     const guildPlayers = await getPlayersByGuild(guildId);
     const dbPlayerCount = Array.isArray(guildPlayers) ? guildPlayers.length : 0;
     const passedPlayerCount = playerCount;
-    console.log(`[MONITOR][${guildId}] player count source debug`, {
-      guildId,
-      function: 'getPlayersByGuild',
-      sql: 'SELECT id, discord_id AS "discordId", username, username AS "playerName", faction AS "playerFaction", url, guild_id AS "guildId", player_status AS "playerStatus", last_check_time AS "lastCheckTime", days_inactive AS "daysInactive", created_at AS "createdAt", updated_at AS "updatedAt" FROM players WHERE guild_id = $1',
-      dbPlayerCount,
-      passedPlayerCount,
-      beforeEmbed: true
-    });
 
     const effectivePlayerCount = dbPlayerCount;
 
     const guild = client.guilds.cache.get(guildId);
     if (!guild) {
-      console.log(`[MONITOR][${guildId}] skip update - guild not in cache`);
       return;
     }
 
     const channel = await guild.channels.fetch(monitorChannelId).catch((err) => {
-      console.error(`[MONITOR][${guildId}] failed to fetch monitor channel`, err.stack || err);
+      console.error(`Erreur fetch monitor channel pour guild ${guildId}:`, err.stack || err);
       return null;
     });
     if (!channel || channel.type !== ChannelType.GuildText) {
-      console.warn(`⚠️ [MONITOR][${guildId}] channel de statut introuvable ou invalide: ${monitorChannelId}`);
+      console.warn(`⚠️ Channel de statut introuvable ou invalide pour guild ${guildId}: ${monitorChannelId}`);
       return;
     }
 
@@ -309,21 +300,6 @@ export async function updateGuildMonitorMessage(guildId, frequency, nextCheckIn,
       monitorChannelId
     });
 
-    console.log(`[MONITOR][${guildId}] updateGuildMonitorMessage`, {
-      guildName,
-      monitorChannelId,
-      monitorMessageId,
-      passedPlayerCount,
-      dbPlayerCount,
-      effectivePlayerCount,
-      frequency,
-      lastCheck: lastCheck ? new Date(lastCheck).toISOString() : null,
-      secondsElapsed,
-      secondsRemaining,
-      minutesRemaining,
-      nextCheckLabel,
-      prevLabel: prevState?.nextCheckLabel || null
-    });
 
     const embed = new EmbedBuilder()
       .setColor(0x3498db)
@@ -341,34 +317,26 @@ export async function updateGuildMonitorMessage(guildId, frequency, nextCheckIn,
       .setTimestamp();
 
     let message = null;
-    console.log(`[MONITOR][${guildId}] monitorMessageId from DB/file:`, { monitorMessageId });
     if (guildConfig.monitorMessageId) {
       try {
         message = await channel.messages.fetch(guildConfig.monitorMessageId);
-        console.log(`[MONITOR][${guildId}] fetch success for message ${guildConfig.monitorMessageId}`);
       } catch (fetchErr) {
-        // Log the discord error details for diagnosis
-        console.error(`[MONITOR][${guildId}] fetch failed for message ${guildConfig.monitorMessageId}`, { message: fetchErr.message, code: fetchErr.code, httpStatus: fetchErr?.status, name: fetchErr.name });
+        console.error(`Erreur fetch monitor message pour guild ${guildId} id=${guildConfig.monitorMessageId}`, { message: fetchErr.message, code: fetchErr.code, httpStatus: fetchErr?.status, name: fetchErr.name });
 
-        // Determine whether we should create a new message:
-        // - If message truly doesn't exist (Unknown Message / 10008 / 404) => allow creating new message
-        // - If Missing Access / 403 / 50013 => do NOT create a new message (bot can't access channel)
         const errMsg = String(fetchErr?.message || '').toLowerCase();
         const isUnknown = errMsg.includes('unknown message') || fetchErr?.code === 10008 || fetchErr?.status === 404;
         const isMissingAccess = errMsg.includes('missing access') || fetchErr?.code === 50013 || fetchErr?.status === 403;
 
         if (isMissingAccess) {
-          console.warn(`[MONITOR][${guildId}] cannot fetch monitor message due to Missing Access; will NOT attempt to create a new message`);
+          console.warn(`⚠️ Accès refusé au message de statut pour guild ${guildId}; création d'un nouveau message désactivée.`);
           return;
         }
 
         if (!isUnknown) {
-          // Unexpected error — avoid creating a new message to prevent spam, but keep monitoring
-          console.warn(`[MONITOR][${guildId}] fetch failed with unexpected error, skipping create to avoid duplicate messages`);
+          console.warn(`⚠️ Erreur inattendue fetch monitor message pour guild ${guildId}; création annulée pour éviter duplication.`);
           return;
         }
 
-        // If we reach here, treat as Unknown Message and allow creating a new one by leaving message === null
         message = null;
       }
     }
@@ -376,33 +344,19 @@ export async function updateGuildMonitorMessage(guildId, frequency, nextCheckIn,
     if (message) {
       if (shouldUpdateMonitorMessage(guildId, newState)) {
         try {
-          console.log(`[MONITOR][${guildId}] editing message ${message.id}`);
           await message.edit({ embeds: [embed] });
           monitorMessageStates[guildId] = newState;
-          console.log(`[MONITOR][${guildId}] message edited successfully`, {
-            oldLabel: prevState?.nextCheckLabel || null,
-            newLabel: newState.nextCheckLabel
-          });
         } catch (editError) {
           console.error(`[MONITOR][${guildId}] message.edit failed`, { error: editError.stack || editError, messageId: message.id });
-          console.log(`[MONITOR][${guildId}] state cache preserved until next successful edit`);
         }
-      } else {
-        console.log(`[MONITOR][${guildId}] skipped edit; state unchanged`, {
-          oldLabel: prevState?.nextCheckLabel,
-          newLabel: newState.nextCheckLabel
-        });
       }
     } else {
       try {
-        console.log(`[MONITOR][${guildId}] monitor message missing — creating new message via channel.send()`);
         message = await channel.send({ embeds: [embed] });
-        console.log(`[MONITOR][${guildId}] channel.send success, message id: ${message.id}`);
         await updateGuildConfig(guildId, { monitor_channel_id: monitorChannelId, monitor_message_id: message.id, alert_channel_id: guildConfig.alertChannelId || undefined });
         monitorMessageStates[guildId] = newState;
-        console.log(`[MONITOR][${guildId}] monitor message created and saved to DB`, { monitorMessageId: message.id });
       } catch (createError) {
-        console.error(`[MONITOR][${guildId}] failed to create monitor message`, createError.stack || createError);
+        console.error(`Erreur création message de statut pour guild ${guildId}:`, createError.stack || createError);
       }
     }
   } catch (error) {
@@ -426,7 +380,6 @@ async function checkInactivityForGuild(guildPlayers) {
   for (const player of guildPlayers) {
     try {
       // Log détaillé désactivé - voir résumé à la fin
-      // console.log(`\n🔍 Vérification de ${player.playerName}...`);
       
       // 1. Scraper le profil
       const scrapResult = await scrapePactifyProfile(player.url);
@@ -441,12 +394,10 @@ async function checkInactivityForGuild(guildPlayers) {
       const previousStatus = player.playerStatus || 'inactive';
       
       // Log détaillé désactivé
-      // console.log(`✅ Scrape réussi: ${currentStatus} (était: ${previousStatus})`);
       await updatePlayerCheckTime(player.id, daysInactive);
 
       // 🟢 DÉTECTION RECONNEXION: Si passe de "inactive" à "online"
       if (previousStatus === 'inactive' && currentStatus === 'online') {
-        console.log(`🟢 RECONNEXION DÉTECTÉE! ${player.playerName} est revenu en ligne!`);
         // Envoyer alerte de reconnexion (toujours envoyer pour notifier le retour)
         const reconnectionSent = await sendReconnectionAlert(player, daysInactive, thresholdDays);
         if (reconnectionSent) {
@@ -458,32 +409,20 @@ async function checkInactivityForGuild(guildPlayers) {
       await updatePlayerStatus(player.id, currentStatus);
 
       // Log détaillé désactivé
-      // console.log(`⏱️ ${player.playerName}: ${currentStatus === 'online' ? 'EN LIGNE' : daysInactive.toFixed(2) + ' jours'} (seuil: ${threshold})`);
 
       // 2. Vérifier si >= seuil (seulement si inactif ET il n'a pas juste revenu en ligne)
       if (currentStatus === 'inactive' && daysInactive >= thresholdDays) {
-        // Vérifier si c'est une "nouvelle" inactivité détectée (au moins 1h depuis last check)
         const lastCheckTime = await getLastAlertTime(player.id, 'inactive');
         const now = Math.floor(Date.now() / 1000);
         
-        // Envoyer alerte seulement si:
-        // - Pas d'alerte précédente (première fois inactif)
-        // - Ou assez de temps écoulé (6h minimum)
         if (!lastCheckTime || (now - lastCheckTime) >= 21600) {
-          // Log détaillé désactivé
-          // console.log(`🚨 ALERTE DÉCLENCHÉE! Jours: ${daysInactive.toFixed(2)} >= Seuil: ${threshold}`);
           const inactivitySent = await sendInactivityAlert(player, daysInactive, thresholdDays);
           if (inactivitySent) {
             alertsTriggered++;
           }
         }
       }
-      // Log détaillé désactivé
-      // else if (currentStatus === 'inactive') {
-      //   console.log(`✅ Pas d'alerte (${daysInactive.toFixed(2)} < ${threshold})`);
-      // }
-
-      // 3. Vérifier rappel 24h (seulement si inactif)
+      
       if (currentStatus === 'inactive') {
         const lastAlertTime = await getLastAlertTime(player.id, 'inactive');
         if (lastAlertTime) {
@@ -496,27 +435,26 @@ async function checkInactivityForGuild(guildPlayers) {
           }
         }
       }
+
+      // 3. Vérifier rappel 24h (seulement si inactif)
     } catch (error) {
       console.error(`❌ Erreur cron pour ${player.playerName || player.username || player.discordId}:`, error);
     }
   }
 
   // Afficher un résumé concis
-  console.log(`[CRON] ✅ Serveur ${guildId}: ${guildPlayers.length} joueurs vérifiés${alertsTriggered > 0 ? `, ${alertsTriggered} alerte(s)` : ''}`);
   return alertsTriggered;
 }
 
 async function sendReconnectionAlert(player, daysInactive, threshold) {
   const inactivityTime = formatInactivityTime(daysInactive);
-  console.log(`📤 Envoi de l'alerte de reconnexion pour ${player.playerName}... (Inactif pendant: ${inactivityTime})`);
   
   const lastReconnectionAlert = await getLastReconnectionAlertTime(player.id);
   const now = Math.floor(Date.now() / 1000);
 
   if (lastReconnectionAlert && now - lastReconnectionAlert < 86400) {
     const remaining = 86400 - (now - lastReconnectionAlert);
-    console.log(`⏸️ Reconnection cooldown actif (${Math.ceil(remaining / 3600)}h restantes)`);
-    return;
+    return false;
   }
 
   try {
@@ -681,7 +619,6 @@ async function sendReconnectionAlert(player, daysInactive, threshold) {
         if (broadcastChannel && broadcastChannel.isTextBased()) {
           // Envoyer le même embed (sans mention) dans le channel broadcast
           await broadcastChannel.send({ embeds: [welcomeEmbed] }).catch(() => null);
-          console.log(`📢 Broadcast de reconnexion envoyé pour ${player.playerName} sur guild ${player.guildId}`);
         }
       }
     } catch (bcErr) {
@@ -694,7 +631,6 @@ async function sendReconnectionAlert(player, daysInactive, threshold) {
         const userToNotify = await client.users.fetch(player.userId);
         if (userToNotify) {
           await userToNotify.send({ embeds: [welcomeEmbed] });
-          console.log(`📬 DM reconnexion envoyé à ${player.playerName}`);
         }
       } catch (dmError) {
         console.warn(`⚠️ Impossible d'envoyer un DM à ${player.playerName}: ${dmError.message}`);
@@ -702,7 +638,6 @@ async function sendReconnectionAlert(player, daysInactive, threshold) {
     }
 
     await updateLastReconnectionAlert(player.id);
-    console.log(`✅ Alerte reconnexion envoyée pour ${player.playerName}\n`);
     return true;
   } catch (error) {
     console.error(`❌ Erreur alerte reconnexion:`, {
@@ -715,7 +650,6 @@ async function sendReconnectionAlert(player, daysInactive, threshold) {
 
 async function sendInactivityAlert(player, daysInactive, threshold) {
   const inactivityTime = formatInactivityTime(daysInactive);
-  console.log(`📤 Envoi de l'alerte d'inactivité pour ${player.playerName}... (Inactif: ${inactivityTime})`);
 
   const lastAlert = await getLastAlertTime(player.id, 'inactive');
   const now = Math.floor(Date.now() / 1000);
@@ -723,24 +657,23 @@ async function sendInactivityAlert(player, daysInactive, threshold) {
   // Éviter les alertes doublons (minimum 1h entre)
   if (lastAlert && now - lastAlert < 3600) {
     const remaining = 3600 - (now - lastAlert);
-    console.log(`⏸️ Cooldown actif (${Math.ceil(remaining / 60)} min restantes)`);
-    return;
+    return false;
   }
 
   try {
     const guildConfig = await getGuildConfig(player.guildId);
     const channelId = guildConfig?.alertChannelId;
+
     if (!channelId) {
       console.warn(`⚠️ Pas de channel d'alerte configuré pour le serveur ${player.guildId}. Ignorer l'alerte d'inactivité pour ${player.playerName}.`);
       return false;
     }
 
-    console.log(`🔍 Récupération du channel d'alerte ${channelId} pour ${player.playerName}...`);
     const channel = await client.channels.fetch(channelId).catch((err) => {
-      console.error(`❌ Erreur récupération channel ${channelId} pour guild ${player.guildId}:`, {
-        code: err?.code,
-        name: err?.name,
-        message: err?.message,
+      console.error('[ALERT] send failed', {
+        'Discord code': err?.code,
+        'HTTP status': err?.httpStatus || err?.status || 'unknown',
+        'Discord message': err?.message,
         stack: err?.stack
       });
       return null;
@@ -750,7 +683,7 @@ async function sendInactivityAlert(player, daysInactive, threshold) {
       console.warn(`❌ Channel ${channelId} introuvable. Configure le serveur avec /config`);
       return false;
     }
-    
+
     if (!channel.isTextBased()) {
       console.warn(`❌ Le channel ${channelId} n'est pas un channel texte valide pour ${player.playerName}`);
       return false;
@@ -846,7 +779,6 @@ async function sendInactivityAlert(player, daysInactive, threshold) {
       .setFooter({ text: `Gorille™・BOTS | Alerte Inactivité • Seuil: ${formatInactivityTime(threshold)}`, iconURL: user?.displayAvatarURL({ size: 256 }) || 'https://discord.com/assets/default_user_avatar.png' });
 
     const mention = `<@${player.userId}>`;
-    console.log(`📨 Envoi du message d'inactivité au channel ${channel.id}...`);
     
     // Boutons
     const row = new ActionRowBuilder()
@@ -861,22 +793,20 @@ async function sendInactivityAlert(player, daysInactive, threshold) {
           .setURL(`https://discord.com/users/${player.userId}`)
       );
 
-    console.log(`[ALERT][${player.guildId}] sendAttempt in ${channelId} for ${player.playerName}`);
     const sentMessage = await channel.send({ content: mention, embeds: [embed], components: [row] }).catch((err) => {
-      console.error(`❌ Erreur envoi d'alerte d'inactivité pour ${player.playerName} dans ${channel.id}:`, {
-        code: err?.code,
-        name: err?.name,
-        message: err?.message,
+      console.error('❌ Envoi d\'alerte d\'inactivité échoué', {
+        'Discord code': err?.code,
+        'HTTP status': err?.httpStatus || err?.status || 'unknown',
+        'Discord message': err?.message,
         stack: err?.stack
       });
       return null;
     });
 
     if (!sentMessage) {
-      console.warn(`[ALERT][${player.guildId}] sendFailed in ${channelId} for ${player.playerName}`);
+      console.warn(`❌ Envoi d'alerte échoué pour ${player.playerName} dans ${channelId}`);
       return false;
     }
-    console.log(`[ALERT][${player.guildId}] sendSuccess in ${channelId} messageId=${sentMessage.id}`);
 
     // Envoyer un DM si activé
     if (guildConfig?.alertsViaDM) {
@@ -918,7 +848,6 @@ async function sendInactivityAlert(player, daysInactive, threshold) {
             .setFooter({ text: 'Gorille™・BOTS | Alerte d\'inactivité', iconURL: user?.displayAvatarURL({ size: 256 }) || 'https://discord.com/assets/default_user_avatar.png' });
 
           await userToNotify.send({ embeds: [dmEmbed] });
-          console.log(`📬 DM envoyé à ${player.playerName}`);
         }
       } catch (dmError) {
         console.warn(`⚠️ Impossible d'envoyer un DM à ${player.playerName}: ${dmError.message}`);
@@ -926,7 +855,6 @@ async function sendInactivityAlert(player, daysInactive, threshold) {
     }
 
     await updateAlertSentTime(player.id, 'inactive');
-    console.log(`✅ Alerte envoyée pour ${player.playerName} !\n`);
     return true;
   } catch (error) {
     console.error(`❌ Erreur envoi alerte pour ${player.playerName}:`, {
@@ -940,15 +868,13 @@ async function sendInactivityAlert(player, daysInactive, threshold) {
 
 async function sendReminderAlert(player, daysInactive, threshold) {
   const inactivityTime = formatInactivityTime(daysInactive);
-  console.log(`📣 Envoi du rappel pour ${player.playerName}...`);
   
   const lastReminder = await getLastAlertTime(player.id, 'reminder');
   const now = Math.floor(Date.now() / 1000);
 
   // Éviter les rappels doublons (minimum 24h entre)
   if (lastReminder && now - lastReminder < 86400) {
-    console.log(`⏸️ Rappel en cooldown (24h requis)`);
-    return;
+    return false;
   }
 
   try {
@@ -960,10 +886,10 @@ async function sendReminderAlert(player, daysInactive, threshold) {
     }
 
     const channel = await client.channels.fetch(channelId).catch((err) => {
-      console.error(`❌ Erreur récupération du channel ${channelId} pour rappel ${player.playerName}:`, {
-        code: err?.code,
-        name: err?.name,
-        message: err?.message,
+      console.error('❌ Envoi échoué lors de la récupération du channel de rappel', {
+        'Discord code': err?.code,
+        'HTTP status': err?.httpStatus || err?.status || 'unknown',
+        'Discord message': err?.message,
         stack: err?.stack
       });
       return null;
@@ -973,8 +899,6 @@ async function sendReminderAlert(player, daysInactive, threshold) {
       console.warn(`❌ Channel ${channelId} introuvable pour rappel de ${player.playerName}.`);
       return false;
     }
-    console.log(`[ALERT][${player.guildId}] reminderChannel alertChannelId=${channelId} channelType=${channel.type} isTextBased=${channel.isTextBased?.()}`);
-
     if (!channel.isTextBased()) {
       console.warn(`❌ Le channel ${channelId} n'est pas un channel texte valide pour rappel.`);
       return false;
@@ -1074,22 +998,20 @@ async function sendReminderAlert(player, daysInactive, threshold) {
           .setURL(`https://discord.com/users/${player.userId}`)
       );
 
-    console.log(`[ALERT][${player.guildId}] reminderSendAttempt in ${channelId} for ${player.playerName}`);
     const sentMessage = await channel.send({ content: mention, embeds: [embed], components: [row] }).catch((err) => {
-      console.error(`❌ Erreur envoi rappel d'inactivité pour ${player.playerName} dans ${channel.id}:`, {
-        code: err?.code,
-        name: err?.name,
-        message: err?.message,
+      console.error('❌ Envoi du rappel d\'inactivité échoué', {
+        'Discord code': err?.code,
+        'HTTP status': err?.httpStatus || err?.status || 'unknown',
+        'Discord message': err?.message,
         stack: err?.stack
       });
       return null;
     });
 
     if (!sentMessage) {
-      console.warn(`[ALERT][${player.guildId}] reminderSendFailed in ${channelId} for ${player.playerName}`);
+      console.warn(`❌ Envoi du rappel échoué pour ${player.playerName} dans ${channelId}`);
       return false;
     }
-    console.log(`[ALERT][${player.guildId}] reminderSendSuccess in ${channelId} messageId=${sentMessage.id}`);
 
     // Envoyer un DM si activé
     if (guildConfig?.alertsViaDM) {
@@ -1131,7 +1053,6 @@ async function sendReminderAlert(player, daysInactive, threshold) {
             .setFooter({ text: 'Gorille™・BOTS | Rappel d\'inactivité', iconURL: user?.displayAvatarURL({ size: 256 }) || 'https://discord.com/assets/default_user_avatar.png' });
 
           await userToNotify.send({ embeds: [dmEmbed] });
-          console.log(`📬 DM rappel envoyé à ${player.playerName}`);
         }
       } catch (dmError) {
         console.warn(`⚠️ Impossible d'envoyer un DM à ${player.playerName}: ${dmError.message}`);
@@ -1139,7 +1060,6 @@ async function sendReminderAlert(player, daysInactive, threshold) {
     }
 
     await updateAlertSentTime(player.id, 'reminder');
-    console.log(`✅ Rappel envoyé pour ${player.playerName} !\n`);
     return true;
   } catch (error) {
     console.error(`❌ Erreur envoi rappel pour ${player.playerName}:`, {
