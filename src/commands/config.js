@@ -48,6 +48,15 @@ export const data = new SlashCommandBuilder()
   );
 
 export async function execute(interaction) {
+  console.log('[CONFIG] execute()');
+  let _config_subcommand = undefined;
+  try {
+    _config_subcommand = interaction.options.getSubcommand();
+    console.log('[CONFIG] subcommand =', _config_subcommand);
+  } catch (e) {
+    console.log('[CONFIG] getSubcommand() threw:', e && e.message ? e.message : e);
+  }
+
   // Vérification de permission (sécurité supplémentaire)
   if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator) && !isBotOwner(interaction.user.id)) {
     return interaction.editReply({
@@ -139,13 +148,14 @@ export async function execute(interaction) {
 
     // Actualiser immédiatement le message de statut si un channel est défini
     if (statusChannel) {
+      console.log('[CONFIG] entered statuschannel');
       try {
         const players = await getPlayersByGuild(interaction.guildId);
         const playerCount = Array.isArray(players) ? players.length : 0;
         const frequency = await getCheckFrequency(interaction.guildId);
         await updateGuildMonitorMessage(interaction.guildId, frequency, 0, playerCount);
       } catch (err) {
-        console.warn(`⚠️ Impossible d'initialiser le message de statut pour ${interaction.guildId}:`, err.message);
+        console.error('[CONFIG][STATUSCHANNEL]', err);
       }
     }
 
