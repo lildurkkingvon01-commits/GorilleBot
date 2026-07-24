@@ -257,6 +257,11 @@ export async function updateGuildMonitorMessage(guildId, frequency, nextCheckIn,
       console.error(`Erreur fetch monitor channel pour guild ${guildId}:`, err.stack || err);
       return null;
     });
+    if (!channel) {
+      console.log(`[MONITOR-DBG] channel.fetch returned null for guild=${guildId} channelId=${monitorChannelId}`);
+    } else {
+      console.log(`[MONITOR-DBG] channel fetched for guild=${guildId} channelId=${channel.id} type=${channel.type}`);
+    }
     if (!channel || channel.type !== ChannelType.GuildText) {
       console.warn(`⚠️ Channel de statut introuvable ou invalide pour guild ${guildId}: ${monitorChannelId}`);
       return;
@@ -321,8 +326,10 @@ export async function updateGuildMonitorMessage(guildId, frequency, nextCheckIn,
 
     let message = null;
     if (guildConfig.monitorMessageId) {
+      console.log(`[MONITOR-DBG] monitorMessageId present (${guildConfig.monitorMessageId}) for guild=${guildId}, attempting fetch`);
       try {
         message = await channel.messages.fetch(guildConfig.monitorMessageId);
+        console.log(`[MONITOR-DBG] fetched monitor message id=${guildConfig.monitorMessageId} for guild=${guildId}`);
       } catch (fetchErr) {
         console.error(`Erreur fetch monitor message pour guild ${guildId} id=${guildConfig.monitorMessageId}`, { message: fetchErr.message, code: fetchErr.code, httpStatus: fetchErr?.status, name: fetchErr.name });
 
@@ -341,25 +348,33 @@ export async function updateGuildMonitorMessage(guildId, frequency, nextCheckIn,
         }
 
         message = null;
+        console.log(`[MONITOR-DBG] monitor message treated as unknown for guild=${guildId}; will attempt create`);
       }
     }
 
     if (message) {
+      console.log(`[MONITOR-DBG] monitor message exists id=${message.id} for guild=${guildId}`);
       if (shouldUpdateMonitorMessage(guildId, newState)) {
         try {
+          console.log(`[MONITOR-DBG] editing monitor message id=${message.id} for guild=${guildId}`);
           await message.edit({ embeds: [embed] });
           monitorMessageStates[guildId] = newState;
+          console.log(`[MONITOR-DBG] edited monitor message id=${message.id} for guild=${guildId}`);
         } catch (editError) {
-          console.error(`[MONITOR][${guildId}] message.edit failed`, { error: editError.stack || editError, messageId: message.id });
+          console.error(`[MONITOR-DBG] message.edit failed for guild ${guildId} id=${message.id}:`, editError.stack || editError);
         }
+      } else {
+        console.log(`[MONITOR-DBG] shouldUpdateMonitorMessage returned false for guild=${guildId}; no edit performed`);
       }
     } else {
       try {
+        console.log(`[MONITOR-DBG] creating monitor message in channel ${monitorChannelId} for guild=${guildId}`);
         message = await channel.send({ embeds: [embed] });
+        console.log(`[MONITOR-DBG] created monitor message id=${message.id} for guild=${guildId}`);
         await updateGuildConfig(guildId, { monitor_channel_id: monitorChannelId, monitor_message_id: message.id, alert_channel_id: guildConfig.alertChannelId || undefined });
         monitorMessageStates[guildId] = newState;
       } catch (createError) {
-        console.error(`Erreur création message de statut pour guild ${guildId}:`, createError.stack || createError);
+        console.error(`[MONITOR-DBG] failed to create monitor message for guild ${guildId}:`, createError.stack || createError);
       }
     }
   } catch (error) {
