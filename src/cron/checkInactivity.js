@@ -351,15 +351,21 @@ export async function updateGuildMonitorMessage(guildId, frequency, nextCheckIn,
     if (message) {
       if (shouldUpdateMonitorMessage(guildId, newState)) {
         try {
+          console.log(`[MONITOR-DBG] attempting to edit monitor message id=${message.id} for guild=${guildId}`);
           await message.edit({ embeds: [embed] });
           monitorMessageStates[guildId] = newState;
+          console.log(`[MONITOR-DBG] edited monitor message id=${message.id} for guild=${guildId}`);
         } catch (editError) {
-          console.error(`[MONITOR][${guildId}] message.edit failed`, { error: editError.stack || editError, messageId: message.id });
+          console.error(`Erreur lors de message.edit pour guild ${guildId} messageId=${message.id}:`, editError.stack || editError);
         }
+      } else {
+        console.log(`[MONITOR-DBG] shouldUpdateMonitorMessage returned false for guild=${guildId}; skipping edit`);
       }
     } else {
       try {
+        console.log(`[MONITOR-DBG] creating new monitor message in channel ${monitorChannelId} for guild=${guildId}`);
         message = await channel.send({ embeds: [embed] });
+        console.log(`[MONITOR-DBG] created monitor message id=${message.id} for guild=${guildId}`);
         await updateGuildConfig(guildId, { monitor_channel_id: monitorChannelId, monitor_message_id: message.id, alert_channel_id: guildConfig.alertChannelId || undefined });
         monitorMessageStates[guildId] = newState;
       } catch (createError) {
