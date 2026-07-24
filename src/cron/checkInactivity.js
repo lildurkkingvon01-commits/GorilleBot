@@ -235,7 +235,11 @@ export async function updateGuildMonitorMessage(guildId, frequency, nextCheckIn,
       alertChannelId
     };
 
+    // Debugging: trace early-return conditions to help `/config statuschannel` troubleshooting
+    console.log(`[MONITOR-DBG] updateGuildMonitorMessage start guild=${guildId} monitorChannelId=${monitorChannelId} monitorMessageId=${monitorMessageId}`);
+
     if (!monitorChannelId) {
+      console.log(`[MONITOR-DBG] no monitorChannelId for guild=${guildId}, skipping update`);
       return;
     }
 
@@ -247,6 +251,7 @@ export async function updateGuildMonitorMessage(guildId, frequency, nextCheckIn,
 
     const guild = client.guilds.cache.get(guildId);
     if (!guild) {
+      console.log(`[MONITOR-DBG] guild not in client cache for guild=${guildId}`);
       return;
     }
 
