@@ -148,12 +148,24 @@ export async function execute(interaction) {
 
     // Actualiser immédiatement le message de statut si un channel est défini
     if (statusChannel) {
+      console.log('[STATUS] STEP 1 - entered statuschannel block');
+      console.log('[STATUS] STEP 2 - deferred/replied state', { deferred: interaction.deferred, replied: interaction.replied });
+      if (!interaction.deferred && !interaction.replied) {
+        console.log('[STATUS] STEP 2a - calling interaction.deferReply()');
+        await interaction.deferReply();
+        console.log('[STATUS] STEP 2b - interaction.deferReply() completed');
+      } else {
+        console.log('[STATUS] STEP 2a - no deferReply needed');
+      }
       console.log('[CONFIG] entered statuschannel');
       try {
         const players = await getPlayersByGuild(interaction.guildId);
         const playerCount = Array.isArray(players) ? players.length : 0;
+        console.log('[STATUS] STEP 3 - config values computed', { playerCount, statusChannelId: statusChannel.id, monitorChannelId: statusChannel.id });
         const frequency = await getCheckFrequency(interaction.guildId);
+        console.log('[STATUS] STEP 4 - before updateGuildMonitorMessage', { frequency });
         await updateGuildMonitorMessage(interaction.guildId, frequency, 0, playerCount);
+        console.log('[STATUS] STEP 4b - after updateGuildMonitorMessage');
       } catch (err) {
         console.error('[CONFIG][STATUSCHANNEL]', err);
       }
@@ -189,9 +201,11 @@ export async function execute(interaction) {
     });
 
     await interaction.editReply({ embeds: [embed] });
+    console.log('[STATUS] STEP 5 - editReply completed');
     console.log(`✅ Configuration sauvegardée pour le serveur ${interaction.guild.name} (${interaction.guildId})`);
   } catch (error) {
     console.error('Erreur config:', error);
+    console.log('[STATUS] STEP ERROR - caught exception in config execute', { name: error.name, message: error.message, stack: error.stack });
     await interaction.editReply({
       content: '❌ Erreur lors de la configuration'
     });
