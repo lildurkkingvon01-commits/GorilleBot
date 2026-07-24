@@ -259,6 +259,7 @@ export async function updateGuildMonitorMessage(guildId, frequency, nextCheckIn,
       console.error(`Erreur fetch monitor channel pour guild ${guildId}:`, err.stack || err);
       return null;
     });
+    console.log(`[MONITOR-DBG] channel fetched for guild=${guildId} channelId=${channel.id} type=${channel.type}`);
     if (!channel || channel.type !== ChannelType.GuildText) {
       console.warn(`⚠️ Channel de statut introuvable ou invalide pour guild ${guildId}: ${monitorChannelId}`);
       return;
@@ -325,6 +326,7 @@ export async function updateGuildMonitorMessage(guildId, frequency, nextCheckIn,
     if (guildConfig.monitorMessageId) {
       try {
         message = await channel.messages.fetch(guildConfig.monitorMessageId);
+        console.log(`[MONITOR-DBG] fetched existing monitor message id=${guildConfig.monitorMessageId} for guild=${guildId}`);
       } catch (fetchErr) {
         console.error(`Erreur fetch monitor message pour guild ${guildId} id=${guildConfig.monitorMessageId}`, { message: fetchErr.message, code: fetchErr.code, httpStatus: fetchErr?.status, name: fetchErr.name });
 
@@ -480,24 +482,29 @@ async function sendReconnectionAlert(player, daysInactive, threshold) {
       return null;
     });
     if (!channel) {
-      console.warn(`⚠️ Channel ${channelId} introuvable. Configure le serveur avec /config`);
-      return false;
-    }
-    if (!channel.isTextBased()) {
-      console.warn(`⚠️ Channel ${channelId} n'est pas un channel texte valide pour la reconnexion`);
-      return false;
-    }
-
-    // Créer la progression bar
-    const progressBar = createProgressBar(daysInactive, threshold);
-    
-    // Récupérer l'utilisateur Discord pour son avatar
-    const user = await client.users.fetch(player.userId).catch(() => null);
-    
-    // Utiliser l'image du profil Pactify s'il existe, sinon avatar Discord
-    const thumbnailUrl = player.playerImageUrl || user?.displayAvatarURL({ size: 256 }) || 'https://cdn-icons-png.flaticon.com/512/747/747376.png';
-    
-    // Barre visuelle améliorée (vert pour reconnexion)
+    if (message) {
+      if (shouldUpdateMonitorMessage(guildId, newState)) {
+        try {
+          console.log(`[MONITOR-DBG] attempting to edit monitor message id=${message.id} for guild=${guildId}`);
+          await message.edit({ embeds: [embed] });
+          monitorMessageStates[guildId] = newState;
+          console.log(`[MONITOR-DBG] edited monitor message id=${message.id} for guild=${guildId}`);
+        } catch (editError) {
+          console.error(`Erreur lors de message.edit pour guild ${guildId} messageId=${message.id}:`, editError.stack || editError);
+        }
+      } else {
+        console.log(`[MONITOR-DBG] shouldUpdateMonitorMessage returned false for guild=${guildId}; skipping edit`);
+      }
+    } else {
+      try {
+        console.log(`[MONITOR-DBG] creating new monitor message in channel ${monitorChannelId} for guild=${guildId}`);
+        message = await channel.send({ embeds: [embed] });
+        console.log(`[MONITOR-DBG] created monitor message id=${message.id} for guild=${guildId}`);
+        await updateGuildConfig(guildId, { monitor_channel_id: monitorChannelId, monitor_message_id: message.id, alert_channel_id: guildConfig.alertChannelId || undefined });
+        monitorMessageStates[guildId] = newState;
+      } catch (createError) {
+        console.error(`Erreur création message de statut pour guild ${guildId}:`, createError.stack || createError);
+      }
     const percentage = Math.min((daysInactive / threshold) * 100, 100);
     const barFilled = Math.round(percentage / 5);
     const barEmpty = 20 - barFilled;
