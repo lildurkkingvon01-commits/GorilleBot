@@ -235,6 +235,9 @@ export async function updateGuildMonitorMessage(guildId, frequency, nextCheckIn,
       alertChannelId
     };
 
+    // Trace call for troubleshooting without accessing possibly-null objects
+    console.log(`[MONITOR-DBG] updateGuildMonitorMessage start guild=${guildId} monitorChannelId=${monitorChannelId} monitorMessageId=${monitorMessageId}`);
+
     if (!monitorChannelId) {
       return;
     }
