@@ -3,7 +3,7 @@ import { getPlayers, getPlayersByGuild, updatePlayerCheckTime, updateAlertSentTi
 import { getGuildConfig as getFileGuildConfig, getConfiguredMonitorGuildIds } from '../utils/guildConfig.js';
 import { scrapePactifyProfile, formatDays } from '../utils/scraper.js';
 import { formatInactivityTime, createProgressBar, getColorByStatus, getStatusEmoji } from '../utils/embedFormatter.js';
-import { EmbedBuilder, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+import { EmbedBuilder, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionFlagsBits } from 'discord.js';
 
 // Helper to merge file + DB guild config
 async function getGuildConfig(guildId) {
@@ -158,7 +158,9 @@ async function checkInactivityIfNeeded() {
           const result = await runInactivityCheckForGuild(guildId);
 
           try {
+            console.log(`[SUMMARY][${guildId}] calling sendVerificationSummary()`);
             await sendVerificationSummary(guildId, result);
+            console.log(`[SUMMARY][${guildId}] sendVerificationSummary() finished`);
           } catch (err) {
             console.error(`[MONITOR][${guildId}] erreur envoi summary`, err.stack || err);
           }
@@ -192,25 +194,79 @@ export async function runInactivityCheckForGuild(guildId) {
 
 async function sendVerificationSummary(guildId, { playersChecked = 0, alertsTriggered = 0 } = {}) {
   try {
-    if (!client) return;
+    console.log(`[SUMMARY][${guildId}] sendVerificationSummary start`, { playersChecked, alertsTriggered });
+    if (!client) {
+      console.log(`[SUMMARY][${guildId}] no client available`);
+      return;
+    }
+
     const guildConfig = await getGuildConfig(guildId);
     const summaryChannelId = guildConfig?.summaryChannelId;
-    if (!summaryChannelId) return;
+    console.log(`[SUMMARY][${guildId}] summaryChannelId =`, summaryChannelId);
+    if (!summaryChannelId) {
+      console.log(`[SUMMARY][${guildId}] no summaryChannelId configured`);
+      return;
+    }
 
     const guildObj = client.guilds.cache.get(guildId);
-    if (!guildObj) return;
+    console.log(`[SUMMARY][${guildId}] guildObj from cache =`, !!guildObj);
+    if (!guildObj) {
+      console.log(`[SUMMARY][${guildId}] guild not in cache`);
+      return;
+    }
 
-    const channel = await guildObj.channels.fetch(summaryChannelId).catch(() => null);
-    if (!channel || channel.type !== ChannelType.GuildText) return;
+    console.log(`[SUMMARY][${guildId}] fetching channel...`);
+    const channel = await guildObj.channels.fetch(summaryChannelId).catch((err) => {
+      console.error(`[SUMMARY][${guildId}] channel fetch error`, {
+        name: err.name,
+        code: err.code,
+        message: err.message,
+        httpStatus: err?.status,
+        stack: err.stack
+      });
+      return null;
+    });
 
-    const summaryEmbed = new EmbedBuilder()
-      .setTitle('✅ Vérification effectuée')
-      .setDescription(`\`${playersChecked} joueur(s)\` vérifiés\n\`${alertsTriggered} alerte(s)\` envoyées`)
-      .setTimestamp();
+    if (!channel) {
+      console.log(`[SUMMARY][${guildId}] channel fetch returned null`);
+      return;
+    }
 
-    await channel.send({ embeds: [summaryEmbed] }).catch(() => null);
+    console.log(`[SUMMARY][${guildId}] channel details`, {
+      id: channel.id,
+      name: channel.name,
+      type: channel.type,
+      isTextBased: typeof channel.isTextBased === 'function' ? channel.isTextBased() : null
+    });
+
+    const permissions = channel.permissionsFor(client.user);
+    console.log(`[SUMMARY][${guildId}] permissions`, {
+      canView: permissions?.has ? permissions.has([PermissionFlagsBits.ViewChannel]) : false,
+      canSend: permissions?.has ? permissions.has([PermissionFlagsBits.SendMessages]) : false,
+      canEmbed: permissions?.has ? permissions.has([PermissionFlagsBits.EmbedLinks]) : false
+    });
+
+    if (!channel.isTextBased()) {
+      console.log(`[SUMMARY][${guildId}] channel is not text based`);
+      return;
+    }
+
+    console.log(`[SUMMARY][${guildId}] sending summary...`);
+    const msg = await channel.send({ embeds: [
+      new EmbedBuilder()
+        .setTitle('✅ Vérification effectuée')
+        .setDescription(`\`${playersChecked} joueur(s)\` vérifiés\n\`${alertsTriggered} alerte(s)\` envoyées`)
+        .setTimestamp()
+    ]});
+    console.log(`[SUMMARY][${guildId}] send success`, msg.id);
   } catch (error) {
-    console.error(`[SUMMARY][${guildId}] impossible d'envoyer le résumé de vérification:`, error.stack || error);
+    console.error(`[SUMMARY][${guildId}] impossible d'envoyer le résumé de vérification:`, {
+      name: error.name,
+      code: error.code,
+      message: error.message,
+      httpStatus: error?.status,
+      stack: error.stack
+    });
   }
 }
 
