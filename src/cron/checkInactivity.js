@@ -249,7 +249,10 @@ export async function updateGuildMonitorMessage(guildId, frequency, nextCheckIn,
     const effectivePlayerCount = dbPlayerCount;
 
     const guild = client.guilds.cache.get(guildId);
+    const guildInCache = !!guild;
+    console.log(`[MONITOR-DBG] guildInCache=${guildInCache} for guild=${guildId}`);
     if (!guild) {
+      console.log(`[MONITOR-DBG] guild not present in client cache for guild=${guildId}`);
       return;
     }
 
